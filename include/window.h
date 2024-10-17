@@ -8,8 +8,8 @@ struct window {
 	void (*event)(chtype, MEVENT *);
 };
 
-extern struct window topbar, mainwin, editwin, newgame, settings, engines;
-extern struct window *wins[6];
+extern struct window topbar, mainwin, editwin, newgame, settings, engines, editengine;
+extern struct window *wins[];
 extern const int nwins;
 
 void window_init(void);

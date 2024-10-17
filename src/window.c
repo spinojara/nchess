@@ -7,13 +7,14 @@
 #include "mainwin.h"
 #include "draw.h"
 #include "engines.h"
+#include "editengine.h"
 
 #define MINLINES 56
 #define MINCOLS 117
 
-struct window topbar, mainwin, editwin, newgame, settings, engines;
+struct window topbar, mainwin, editwin, newgame, settings, engines, editengine;
 
-struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines };
+struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine };
 
 const int nwins = sizeof(wins) / sizeof(*wins);
 
@@ -38,6 +39,10 @@ void window_init(void) {
 	engines.win = newwin(0, 0, 0, 0);
 	keypad(engines.win, TRUE);
 	engines.event = &engines_event;
+
+	editengine.win = newwin(0, 0, 0, 0);
+	keypad(editengine.win, TRUE);
+	editengine.event = &editengine_event;
 }
 
 void window_resize(void) {
@@ -52,6 +57,7 @@ void window_resize(void) {
 	topbar_resize();
 	mainwin_resize();
 	engines_resize();
+	editengine_resize();
 
 	wresize(editwin.win, LINES - 8, COLS - 10);
 	mvwin(editwin.win, 5, 4);
@@ -103,6 +109,6 @@ void place_top(struct window *win) {
 	}
 	/* Topbar needs to be redrawn if it was previously on top. */
 	if (wins[1] == &topbar)
-		topbar.event('r', NULL);
-	win->event('r', NULL);
+		topbar.event(0, NULL);
+	win->event(0, NULL);
 }

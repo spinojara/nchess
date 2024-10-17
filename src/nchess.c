@@ -10,6 +10,7 @@
 #include "draw.h"
 #include "window.h"
 #include "mainwin.h"
+#include "editengine.h"
 
 int main(void) {
 	setlocale(LC_ALL, "");
@@ -31,6 +32,7 @@ int main(void) {
 	window_init();
 	mainwin_init();
 	window_resize();
+	editengine_init();
 
 	MEVENT event;
 	chtype ch;

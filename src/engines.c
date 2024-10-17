@@ -3,16 +3,28 @@
 #include "window.h"
 #include "color.h"
 #include "draw.h"
+#include "editengine.h"
 
 static int refreshed = 0;
+
+static int selected = 0;
+
+static int nengines = 0;
+static int sengines = 0;
+static struct uciengine *uciengines = NULL;
 
 void engines_draw();
 
 void engines_event(chtype ch, MEVENT *event) {
 	switch (ch) {
-	case 'r':
+	case 0:
 		refreshed = 0;
 		break;
+	case '\n':
+		if (selected == 0) {
+			place_top(&editengine);
+			return;
+		}
 	}
 
 	if (!refreshed)

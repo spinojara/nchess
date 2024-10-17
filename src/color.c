@@ -36,6 +36,8 @@ void make_colors(void) {
 	COLOR(cs.textdim,      COLOR_WHITE,  COLOR_WHITE, A_DIM);
 	COLOR(cs.textblue,     COLOR_BLUE,   COLOR_WHITE, A_NORMAL);
 
+	COLOR(cs.red,          COLOR_BLACK,  COLOR_RED,   A_NORMAL);
+
 	make_color(&cs.wpw);
 	make_color(&cs.bpw);
 	make_color(&cs.cpw);
@@ -55,6 +57,8 @@ void make_colors(void) {
 	make_color(&cs.texthl);
 	make_color(&cs.textdim);
 	make_color(&cs.textblue);
+
+	make_color(&cs.red);
 }
 
 void set_color(WINDOW *win, struct color *c) {

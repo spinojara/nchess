@@ -38,10 +38,10 @@ int forward_move(void);
 void forward_full(void);
 
 void mainwin_event(chtype ch, MEVENT *event) {
-	if (ch != KEY_MOUSE && ch != 'r')
+	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
 	switch (ch) {
-	case 'r':
+	case 0:
 		refreshed = 0;
 		break;
 	case 'u':

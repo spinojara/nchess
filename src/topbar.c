@@ -17,7 +17,7 @@ void topbar_draw(void);
 
 void topbar_event(chtype ch, MEVENT *event) {
 	switch (ch) {
-	case 'r':
+	case 0:
 		refreshed = 0;
 		break;
 	case 'h':
