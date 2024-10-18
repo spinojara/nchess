@@ -28,4 +28,6 @@ void field_driver(struct field *field, chtype ch, MEVENT *event);
 
 char *field_buffer(struct field *field);
 
+void field_clear(struct field *field);
+
 #endif

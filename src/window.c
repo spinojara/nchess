@@ -76,6 +76,7 @@ void window_resize(void) {
 	}
 }
 
+#ifndef NDEBUG
 void print_window(struct window *win) {
 	if (win == &topbar)
 		printf("topbar\n");
@@ -89,7 +90,18 @@ void print_window(struct window *win) {
 		printf("newgame\n");
 	else if (win == &editwin)
 		printf("editwin\n");
+	else if (win == &editengine)
+		printf("editengine\n");
+	else
+		printf("unknown\n");
 }
+
+void print_order(void) {
+	printf("order:\n");
+	for (int i = 0; i < nwins; i++)
+		print_window(wins[i]);
+}
+#endif
 
 void place_top(struct window *win) {
 	if (win == wins[0])

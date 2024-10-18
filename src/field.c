@@ -137,3 +137,9 @@ void field_driver(struct field *field, chtype ch, MEVENT *event) {
 		}
 	}
 }
+
+void field_clear(struct field *field) {
+	field->len = 0;
+	field->disp = 0;
+	field->cur = 0;
+}
