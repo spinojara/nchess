@@ -33,8 +33,8 @@ int main(void) {
 	mouseinterval(0);
 	mousemask(BUTTON1_PRESSED | BUTTON1_RELEASED, NULL);
 
-	mainwin_init();
 	window_init();
+	mainwin_init();
 	window_resize();
 	editengine_init();
 
@@ -47,9 +47,7 @@ int main(void) {
 	chtype ch;
 	while (running) {
 		ch = wgetch(wins[0]->win);
-		if (ch == 'q' && wins[0] != &editengine)
-			running = 0;
-		else if (ch == KEY_MOUSE) {
+		if (ch == KEY_MOUSE) {
 			if (getmouse(&event) != OK)
 				continue;
 			if (event.bstate & BUTTON1_RELEASED && ((wins[0] != &mainwin && wins[0] != &editwin) || !wenclose(mainwin.win, event.y, event.x)))

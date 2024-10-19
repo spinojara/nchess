@@ -39,6 +39,8 @@ int file_of(int square);
 
 int rank_of(int square);
 
+int fen_is_ok(const char *fen);
+
 void pos_from_fen(struct position *pos, const char *fen);
 
 char *pos_to_fen(char *fen, const struct position *pos);

@@ -114,6 +114,11 @@ void editwin_event(chtype ch, MEVENT *event) {
 				/* The same piece should still be selected so we do not reset it. */
 				refreshed = 0;
 			}
+			else if (selectedsquare != -1) {
+				pos.mailbox[selectedsquare].type = EMPTY;
+				selectedsquare = -1;
+				refreshed = 0;
+			}
 		}
 		break;
 	}

@@ -5,6 +5,8 @@
 
 #define KEY_ESC 27
 
+extern int running;
+
 struct window {
 	WINDOW *win;
 	void (*event)(chtype, MEVENT *);

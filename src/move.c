@@ -5,6 +5,7 @@
 #include <ncurses.h>
 
 #include "position.h"
+#include "window.h"
 
 void new_move(struct move *move, int from, int to, int en_passant, int promotion) {
 	move->from = from;
@@ -525,7 +526,17 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 	do_move(&posc, &movec);
 	movegen(&posc, moves, 0);
 	int mate = is_null(moves);
+	posc.turn = !posc.turn;
+	movegen(&posc, moves, 1);
+	int check = 0;
+	for (int i = 0; !is_null(&moves[i]) && !check; i++)
+		if (posc.mailbox[moves[i].to].type == KING)
+			check = 1;
 
+	if (check && mate)
+		str[i++] = '#';
+	else if (check)
+		str[i++] = '+';
 	str[i] = '\0';
 	return str;
 }

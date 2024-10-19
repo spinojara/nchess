@@ -30,4 +30,8 @@ char *field_buffer(struct field *field);
 
 void field_clear(struct field *field);
 
+void field_set(struct field *field, char *str);
+
+void field_insert(struct field *field, char c);
+
 #endif

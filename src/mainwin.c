@@ -10,12 +10,13 @@
 #include "move.h"
 #include "board.h"
 #include "engine.h"
+#include "field.h"
 
 static int refreshed = 0;
 
 static int selectedsquare = -1;
 
-static int flipped = 1;
+static int flipped = 0;
 
 /* Displayed position. */
 struct position posd;
@@ -25,6 +26,9 @@ static struct position posa;
 static int smove = 0;
 static int selectedmove = -1;
 static int nmove = 0;
+
+static int fenselected = 0;
+static struct field fen;
 
 static struct {
 	struct move move;
@@ -47,6 +51,23 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
 
+	if (fenselected) {
+		refreshed = 0;
+		if (ch != '\n' && ch != 0) {
+			field_driver(&fen, ch, event);
+			goto draw;
+		}
+		else if (ch == '\n') {
+			struct position new;
+			char *buf = field_buffer(&fen);
+			if (fen_is_ok(buf)) {
+				pos_from_fen(&new, buf);
+				set_position(&new);
+				fenselected = 0;
+			}
+		}
+	}
+
 	switch (ch) {
 	case 0:
 		refreshed = 0;
@@ -58,6 +79,9 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	case 'f':
 		forward_move();
 		refreshed = 0;
+		break;
+	case 'q':
+		running = 0;
 		break;
 	case 'k':
 	case KEY_UP:
@@ -102,6 +126,11 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				}
 				refreshed = 0;
 			}
+			else if (event->y == 43 && 2 <= event->x && event->x < 2 + 78) {
+				fenselected = 1;
+				field_driver(&fen, ch, event);
+				refreshed = 0;
+			}
 		}
 		if (event->bstate & BUTTON1_RELEASED) {
 			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1) {
@@ -116,8 +145,9 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				movegen(&posd, moves, 0);
 				for (int i = 0; !is_null(&moves[i]); i++) {
 					if (moves[i].to == move.to && moves[i].from == move.from) {
-						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to)))
+						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to))) {
 							put_move(&moves[i], 0);
+						}
 						break;
 					}
 				}
@@ -128,6 +158,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 		break;
 	}
 
+draw:
 	if (!refreshed)
 		mainwin_draw();
 }
@@ -234,17 +265,24 @@ void fen_draw(WINDOW *win, struct position *pos) {
 	/* Limit the length of the fen. In very rare cases this would actually
 	 * make parts of the fen invisible.
 	 */
-	if (strlen(fen) > 80) {
+	if (strlen(fen) > 78) {
+		fen[75] = '.';
+		fen[76] = '.';
 		fen[77] = '.';
-		fen[78] = '.';
-		fen[79] = '.';
 	}
 	else {
 		fen[strlen(fen)] = ' ';
 	}
-	fen[80] = '\0';
-	set_color(win, &cs.text);
-	mvwprintw(win, 43, 1, "%s", fen);
+	fen[78] = '\0';
+	set_color(win, fenselected ? &cs.red : &cs.text);
+	mvwprintw(win, 43, 2, "%s", fen);
+}
+
+int fen_filter(char c) {
+	return c != '/' && c != ' ' && c != '-' && (c < '0' || c > '9') &&
+		(c < 'a' || c > 'h') && c != 'w' && c != 'K' && c != 'Q' &&
+		c != 'R' && c != 'B' && c != 'N' && c != 'P' && c != 'k' &&
+		c != 'q' && c != 'r' && c != 'b' && c != 'n' && c != 'p';
 }
 
 static void analysis_draw(void) {
@@ -272,7 +310,10 @@ void mainwin_draw(void) {
 
 	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped);
 	moves_draw();
-	fen_draw(mainwin.win, &posd);
+	char fenstr[128];
+	if (!fenselected)
+		field_set(&fen, pos_to_fen(fenstr, &posd));
+	field_draw(&fen, fenselected ? A_UNDERLINE : 0, fenselected);
 	analysis_draw();
 	wrefresh(mainwin.win);
 	refreshed = 1;
@@ -286,8 +327,8 @@ void mainwin_resize(void) {
 }
 
 void mainwin_init(void) {
-	//pos_from_fen(&posa, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-	pos_from_fen(&posa, "8/PPPPPPPP/8/8/3K1k2/8/pppppppp/8 w - - 0 1");
+	pos_from_fen(&posa, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	field_init(&fen, mainwin.win, 43, 2, 78, &fen_filter);
 	posd = posa;
 }
 

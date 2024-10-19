@@ -25,7 +25,6 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 
 /* Draw the \n and \t characters as a red 'n' and 't' respectively. */
 void field_draw(struct field *field, attr_t attr, int draw_cursor) {
-
 	for (int j = 0; j < field->screenlen; j++) {
 		char c = field->disp + j < field->len ? field->str[field->disp + j] : ' ';
 		wattrset(field->win, (draw_cursor && field->disp + j == field->cur ? cs.texthl.attr : cs.text.attr) | attr);
@@ -128,8 +127,11 @@ void field_driver(struct field *field, chtype ch, MEVENT *event) {
 		field_curinc(field);
 		break;
 	case KEY_MOUSE:
-		if (event->y == field->y && field->x <= event->x && event->x < field->x + field->screenlen && field->disp + event->x - field->x <= field->len)
+		if (event->y == field->y && field->x <= event->x && event->x < field->x + field->screenlen) {
 			field->cur = field->disp + event->x - field->x;
+			if (field->cur > field->len)
+				field->cur = field->len;
+		}
 		break;
 	default:
 		if (!field->filter || !field->filter(ch & A_CHARTEXT)) {
@@ -142,4 +144,11 @@ void field_clear(struct field *field) {
 	field->len = 0;
 	field->disp = 0;
 	field->cur = 0;
+}
+
+void field_set(struct field *field, char *str) {
+	field_clear(field);
+	int len = strlen(str);
+	for (int i = 0; i < len; i++)
+		field_insert(field, str[i]);
 }

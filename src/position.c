@@ -15,10 +15,75 @@ int rank_of(int square) {
 	return square / 8;
 }
 
-void fen_is_ok(const char *fen) {
-	struct position pos = { 0 };
-	
+/* We allow some weirdly (wrongly) formatted fen strings which
+ * we can still fix. See make_legal.
+ */
+int fen_is_ok(const char *fen) {
+	int i;
+	int x, y;
+	for (i = x = y = 0; fen[i] != '\0' && fen[i] != ' '; i++) {
+		switch (fen[i]) {
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+			x += fen[i] - '0';
+			break;
+		case 'p':
+		case 'P':
+		case 'n':
+		case 'N':
+		case 'b':
+		case 'B':
+		case 'r':
+		case 'R':
+		case 'q':
+		case 'Q':
+		case 'k':
+		case 'K':
+			x++;
+			break;
+		case '/':
+			if (x != 8)
+				return 0;
+			x = 0;
+			y++;
+			break;
+		default:
+			return 0;
+		}
+	}
+	if (y != 7 || x != 8 || fen[i] == '\0')
+		return 0;
+	i++;
+	if (fen[i] != 'w' && fen[i] != 'b')
+		return 0;
+	i++;
+	if (fen[i] != ' ')
+		return 0;
+	i++;
+	char *c = strchr(&fen[i], ' ');
+	if (!c)
+		return 0;
+	i += c - &fen[i];
 
+	if (fen[i] != ' ')
+		return 0;
+	i++;
+	if (fen[i] != '-' && (fen[i] < 'a' || fen[i] > 'h' || fen[i + 1] < '1' || fen[i + 1] > '8'))
+		return 0;
+	i += 1 + (fen[i] != '-');
+	if (fen[i] != ' ' && fen[i] != '\0')
+		return 0;
+
+	struct position pos;
+	pos_from_fen(&pos, fen);
+
+	return make_legal(&pos);
 }
 
 char *algebraic(char *str, int square) {
@@ -114,8 +179,10 @@ void pos_from_fen(struct position *pos, const char *fen) {
 		pos->en_passant = 0;
 
 	c = strchr(c + 1, ' ');
-	if (c == NULL)
+	if (c == NULL) {
+		make_legal(pos);
 		return;
+	}
 
 	char *endptr;
 	errno = 0;
@@ -124,6 +191,8 @@ void pos_from_fen(struct position *pos, const char *fen) {
 	c = endptr;
 	errno = 0;
 	pos->fullmove = strtod(c, &endptr);
+
+	make_legal(pos);
 }
 
 int en_passant_needed(const struct position *pos) {
@@ -191,6 +260,11 @@ char *pos_to_fen(char *fen, const struct position *pos) {
 
 int make_legal(struct position *pos) {
 	struct position copy = *pos;
+	if (copy.fullmove < 1)
+		copy.fullmove = 1;
+	if (copy.halfmove < 0)
+		copy.halfmove = 0;
+
 	if (copy.mailbox[E1].type != KING || copy.mailbox[E1].color != WHITE)
 		copy.K = copy.Q = 0;
 	if (copy.mailbox[E8].type != KING || copy.mailbox[E8].color != BLACK)
@@ -204,16 +278,36 @@ int make_legal(struct position *pos) {
 	if (copy.mailbox[H8].type != ROOK || copy.mailbox[H8].color != BLACK)
 		copy.k = 0;
 
-	int k = 0, K = 0;
+	int p[2] = { 0 };
+	int n[2] = { 0 };
+	int b[2] = { 0 };
+	int r[2] = { 0 };
+	int q[2] = { 0 };
+	int k[2] = { 0 };
 	for (int sq = 0; sq < 64; sq++) {
-		if (copy.mailbox[sq].type == KING) {
-			if (copy.mailbox[sq].color == WHITE)
-				K++;
-			else
-				k++;
+		int color = copy.mailbox[sq].color;
+		switch (copy.mailbox[sq].type) {
+		case PAWN:
+			p[color]++;
+			break;
+		case KNIGHT:
+			n[color]++;
+			break;
+		case BISHOP:
+			b[color]++;
+			break;
+		case ROOK:
+			r[color]++;
+			break;
+		case QUEEN:
+			q[color]++;
+			break;
+		case KING:
+			k[color]++;
+			break;
 		}
 	}
-	if (k != 1 || K != 1)
+	if (k[0] != 1 || k[1] != 1 || p[0] > 8 || p[1] > 8 || n[0] > 9 || n[1] > 9 || b[0] > 9 || b[1] > 9 || r[0] > 9 || r[1] > 9 || q[0] > 9 || q[1] > 9 || p[0] + n[0] + b[0] + r[0] + q[0] + k[0] > 16 || p[1] + n[1] + b[1] + r[1] + q[1] + k[1] > 16)
 		return 0;
 
 	for (int i = 0; i < 8; i++)
