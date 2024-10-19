@@ -65,6 +65,7 @@ void window_init(void) {
 void window_resize(void) {
 	if (LINES < MINLINES || COLS < MINCOLS)
 		die("error: terminal needs to be of size at least %dx%d\n", MINLINES, MINCOLS);
+	wbkgd(stdscr, cs.bg.attr);
 	draw_fill(stdscr, &cs.bg, 0, 0, LINES, COLS);
 	draw_border(stdscr, &cs.bg, &cs.border, &cs.bordershadow, 1, 1, 2, LINES - 2, COLS - 4);
 

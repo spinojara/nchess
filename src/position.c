@@ -188,3 +188,57 @@ char *pos_to_fen(char *fen, const struct position *pos) {
 	fen[k] = '\0';
 	return fen;
 }
+
+int make_legal(struct position *pos) {
+	struct position copy = *pos;
+	if (copy.mailbox[E1].type != KING || copy.mailbox[E1].color != WHITE)
+		copy.K = copy.Q = 0;
+	if (copy.mailbox[E8].type != KING || copy.mailbox[E8].color != BLACK)
+		copy.k = copy.q = 0;
+	if (copy.mailbox[A1].type != ROOK || copy.mailbox[A1].color != WHITE)
+		copy.Q = 0;
+	if (copy.mailbox[H1].type != ROOK || copy.mailbox[H1].color != WHITE)
+		copy.K = 0;
+	if (copy.mailbox[A8].type != ROOK || copy.mailbox[A8].color != BLACK)
+		copy.q = 0;
+	if (copy.mailbox[H8].type != ROOK || copy.mailbox[H8].color != BLACK)
+		copy.k = 0;
+
+	int k = 0, K = 0;
+	for (int sq = 0; sq < 64; sq++) {
+		if (copy.mailbox[sq].type == KING) {
+			if (copy.mailbox[sq].color == WHITE)
+				K++;
+			else
+				k++;
+		}
+	}
+	if (k != 1 || K != 1)
+		return 0;
+
+	for (int i = 0; i < 8; i++)
+		if (copy.mailbox[i].type == PAWN || copy.mailbox[63 - i].type == PAWN)
+			return 0;
+
+	if (copy.en_passant / 8 == 2 && !copy.turn) {
+		if (copy.mailbox[copy.en_passant].type != EMPTY || copy.mailbox[copy.en_passant - 8].type != EMPTY || copy.mailbox[copy.en_passant + 8].type != PAWN || copy.mailbox[copy.en_passant + 8].color != WHITE)
+			copy.en_passant = 0;
+	}
+	else if (copy.en_passant / 8 == 5 && copy.turn) {
+		if (copy.mailbox[copy.en_passant].type != EMPTY || copy.mailbox[copy.en_passant + 8].type != EMPTY || copy.mailbox[copy.en_passant - 8].type != PAWN || copy.mailbox[copy.en_passant - 8].color != BLACK)
+			copy.en_passant = 0;
+	}
+	else
+		copy.en_passant = 0;
+
+	copy.turn = !copy.turn;
+	struct move moves[MOVES_MAX];
+	movegen(&copy, moves, 1);
+	for (int i = 0; !is_null(&moves[i]); i++)
+		if (copy.mailbox[moves[i].to].type == KING)
+			return 0;
+	copy.turn = !copy.turn;
+
+	*pos = copy;
+	return 1;
+}

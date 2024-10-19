@@ -1,3 +1,4 @@
 - Checking fens for legality.
-- Promotions in mainwin.
 - Board editor en passant.
+- Add button for rotating board.
+- Let the different ui parts handle 'q' separately.

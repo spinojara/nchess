@@ -15,7 +15,7 @@ static int refreshed = 0;
 
 static int selectedsquare = -1;
 
-static int flipped = 0;
+static int flipped = 1;
 
 /* Displayed position. */
 struct position posd;
@@ -41,10 +41,12 @@ int backward_move(void);
 void backward_full(void);
 int forward_move(void);
 void forward_full(void);
+int prompt_promotion(int square);
 
 void mainwin_event(chtype ch, MEVENT *event) {
 	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
+
 	switch (ch) {
 	case 0:
 		refreshed = 0;
@@ -114,7 +116,8 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				movegen(&posd, moves, 0);
 				for (int i = 0; !is_null(&moves[i]); i++) {
 					if (moves[i].to == move.to && moves[i].from == move.from) {
-						put_move(&moves[i], 0);
+						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to)))
+							put_move(&moves[i], 0);
 						break;
 					}
 				}
@@ -283,6 +286,66 @@ void mainwin_resize(void) {
 }
 
 void mainwin_init(void) {
-	pos_from_fen(&posa, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	//pos_from_fen(&posa, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	pos_from_fen(&posa, "8/PPPPPPPP/8/8/3K1k2/8/pppppppp/8 w - - 0 1");
 	posd = posa;
+}
+
+void set_position(struct position *pos) {
+	posd = posa = *pos;
+	nmove = 0;
+	selectedmove = -1;
+}
+
+int prompt_promotion(int square) {
+	if (flipped)
+		square = 63 - square;
+	int file = square % 8;
+	int rank = square / 8;
+	int up = rank > 4;
+	WINDOW *win = newwin(22, 12, 5 + !up * 20, 4 + 10 * file);
+	keypad(win, TRUE);
+	draw_fill(win, &cs.border, 1, 1, 20, 10);
+	set_color(win, &cs.bordershadow);
+	mvwhline(win, 0, 1, ACS_HLINE, 10);
+	mvwvline(win, 1, 0, ACS_VLINE, 20);
+	mvwaddch(win, 0, 0, up && file == 0 ? ACS_ULCORNER : file == 0 ? ACS_LTEE : up ? ACS_TTEE : ACS_ULCORNER);
+
+	set_color(win, &cs.border);
+	mvwhline(win, 21, 1, ACS_HLINE, 10);
+	mvwvline(win, 1, 11, ACS_VLINE, 20);
+	mvwaddch(win, 21, 11, !up && file == 7 ? ACS_LRCORNER : file == 7 ? ACS_RTEE : !up ? ACS_BTEE : ACS_LRCORNER);
+
+	set_color(win, up && file != 7 ? &cs.bordershadow : &cs.border);
+	mvwaddch(win, 0, 11, up && file == 7 ? ACS_URCORNER : file == 7 ? ACS_RTEE : up ? ACS_TTEE : ACS_URCORNER);
+
+	set_color(win, !up && file != 0 ? &cs.border : &cs.bordershadow);
+	mvwaddch(win, 21, 0, !up && file == 0 ? ACS_LLCORNER : file == 0 ? ACS_LTEE : !up ? ACS_BTEE : ACS_LLCORNER);
+
+	struct piece p = { 0 };
+	p.type = QUEEN;
+	piece_draw(win, 1 + 15 * !up, 1, &p, &cs.text);
+	p.type = KNIGHT;
+	piece_draw(win, 1 + 5 + 5 * !up, 1, &p, &cs.text);
+	p.type = ROOK;
+	piece_draw(win, 1 + 10 - 5 * !up, 1, &p, &cs.text);
+	p.type = BISHOP;
+	piece_draw(win, 1 + 15 - 15 * !up, 1, &p, &cs.text);
+
+	MEVENT event;
+	int promotion = 0;
+	if (wgetch(win) == KEY_MOUSE && getmouse(&event) == OK && (event.bstate & BUTTON1_PRESSED) && wenclose(win, event.y, event.x) && wmouse_trafo(win, &event.y, &event.x, FALSE)) {
+		if (event.y <= 5)
+			promotion = up ? QUEEN : BISHOP;
+		else if (event.y <= 10)
+			promotion = up ? KNIGHT : ROOK;
+		else if (event.y <= 15)
+			promotion = up ? ROOK : KNIGHT;
+		else
+			promotion = up ? BISHOP : QUEEN;
+	}
+
+	delwin(win);
+
+	return promotion;
 }

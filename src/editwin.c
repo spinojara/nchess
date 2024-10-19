@@ -15,11 +15,15 @@ static int selectedsquare = -1;
 
 static int selectedpiece = -1;
 
+static int illegal = 0;
+
 static int flipped = 0;
 
 void editwin_draw(void);
 
 void editwin_event(chtype ch, MEVENT *event) {
+	if (ch != 0 || ch != KEY_MOUSE || !(event->bstate & BUTTON1_RELEASED))
+		illegal = 0;
 	switch (ch) {
 	case 0:
 		refreshed = 0;
@@ -30,7 +34,7 @@ void editwin_event(chtype ch, MEVENT *event) {
 	case KEY_MOUSE:
 		if (event->bstate & BUTTON1_PRESSED) {
 			/* Board. */
-			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41) {
+			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedpiece == -1) {
 				int new = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
 				if (flipped)
 					new = 63 - new;
@@ -40,35 +44,53 @@ void editwin_event(chtype ch, MEVENT *event) {
 				}
 				refreshed = 0;
 			}
-			else if (84 <= event->x && event->x < 104 && 0 < event->y && event->y < 31) {
+			else {
+				selectedsquare = -1;
+			}
+			if (84 <= event->x && event->x < 104 && 0 < event->y && event->y < 30) {
 				selectedsquare = -1;
 				int new = (event->x - 84) / 10 + 2 * ((event->y - 1) / 5);
 				selectedpiece = new == selectedpiece ? -1 : new;
 				refreshed = 0;
 			}
-			else if (event->y == 32 && 87 <= event->x && event->x < 87 + 5) {
+			if (event->y == 32 && 85 <= event->x && event->x < 89 + 5) {
 				pos.turn = WHITE;
 				refreshed = 0;
 			}
-			else if (event->y == 32 && 97 <= event->x && event->x < 97 + 5) {
+			else if (event->y == 32 && 95 <= event->x && event->x < 99 + 5) {
 				pos.turn = BLACK;
 				refreshed = 0;
 			}
-			else if (event->y == 34 && 87 <= event->x && event->x < 87 + 5) {
+			else if (event->y == 34 && 85 <= event->x && event->x < 89 + 5) {
 				pos.K = !pos.K;
 				refreshed = 0;
 			}
-			else if (event->y == 34 && 97 <= event->x && event->x < 97 + 5) {
+			else if (event->y == 34 && 95 <= event->x && event->x < 99 + 5) {
 				pos.k = !pos.k;
 				refreshed = 0;
 			}
-			else if (event->y == 36 && 87 <= event->x && event->x < 87 + 5) {
+			else if (event->y == 36 && 85 <= event->x && event->x < 89 + 5) {
 				pos.Q = !pos.Q;
 				refreshed = 0;
 			}
-			else if (event->y == 36 && 97 <= event->x && event->x < 97 + 5) {
+			else if (event->y == 36 && 95 <= event->x && event->x < 99 + 5) {
 				pos.q = !pos.q;
 				refreshed = 0;
+			}
+			else if (event->y == 43 && 85 <= event->x && event->x < 85 + 8) {
+				if (make_legal(&pos)) {
+					refreshed = 1;
+					set_position(&pos);
+					place_top(&mainwin);
+				}
+				else {
+					illegal = 1;
+					refreshed = 0;
+				}
+			}
+			else if (event->y == 43 && 85 + 11 <= event->x && event->x < 85 + 11 + 8) {
+				refreshed = 1;
+				place_top(&mainwin);
 			}
 		}
 		if (event->bstate & BUTTON1_RELEASED) {
@@ -115,20 +137,23 @@ void editwin_draw(void) {
 		}
 	}
 	set_color(editwin.win, pos.turn ? &cs.texthl : &cs.text);
-	mvwaddstr(editwin.win, 32, 87, "White");
+	mvwaddstr(editwin.win, 32, 85, "< White >");
 	set_color(editwin.win, pos.turn ? &cs.text : &cs.texthl);
-	mvwaddstr(editwin.win, 32, 97, "Black");
+	mvwaddstr(editwin.win, 32, 95, "< Black >");
 	set_color(editwin.win, pos.K ? &cs.texthl : &cs.text);
-	mvwaddstr(editwin.win, 34, 88, "O-O");
+	mvwaddstr(editwin.win, 34, 86, "< O-O >");
 	set_color(editwin.win, pos.Q ? &cs.texthl : &cs.text);
-	mvwaddstr(editwin.win, 36, 87, "O-O-O");
+	mvwaddstr(editwin.win, 36, 85, "< O-O-O >");
 	set_color(editwin.win, pos.k ? &cs.texthl : &cs.text);
-	mvwaddstr(editwin.win, 34, 98, "O-O");
+	mvwaddstr(editwin.win, 34, 96, "< O-O >");
 	set_color(editwin.win, pos.q ? &cs.texthl : &cs.text);
-	mvwaddstr(editwin.win, 36, 97, "O-O-O");
+	mvwaddstr(editwin.win, 36, 95, "< O-O-O >");
 	set_color(editwin.win, &cs.text);
 	char str[3];
 	mvwprintw(editwin.win, 38, 87, "En Passant: %s", algebraic(str, pos.en_passant ? pos.en_passant : -1));
+	mvwaddstr(editwin.win, 43, 85 + 11, "< Back >");
+	set_color(editwin.win, illegal ? &cs.red : &cs.text);
+	mvwaddstr(editwin.win, 43, 85, "< Save >");
 
 	board_draw(editwin.win, 1, 1, &pos, selectedsquare, flipped);
 	fen_draw(editwin.win, &pos);

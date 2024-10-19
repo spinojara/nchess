@@ -47,4 +47,6 @@ char *algebraic(char *str, int square);
 
 int square(const char *algebraic); 
 
+int make_legal(struct position *pos);
+
 #endif
