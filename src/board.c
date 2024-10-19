@@ -93,12 +93,15 @@ void piece_draw(WINDOW *win, int y, int x, struct piece *p, struct color *fg) {
 	}
 }
 
-void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected) {
+void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, int flipped) {
 	for (int i = 0; i < 8; i++) {
 		for (int j = 0; j < 8; j++) {
-			struct piece *p = &pos->mailbox[8 * i + j];
+			int sq = 8 * i + j;
+			if (flipped)
+				sq = 63 - sq;
+			struct piece *p = &pos->mailbox[sq];
 			struct color *fg;
-			int is_selected = 8 * i + j == selected;
+			int is_selected = sq == selected;
 			if ((i + j) % 2) {
 				if (p->color) {
 					fg = &cs.wpw;
@@ -133,11 +136,11 @@ void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected) {
 			}
 			if (i == 0) {
 				set_color(win, fg);
-				mvwaddch(win, y + 5 * 7 + 4, x + 10 * j, 'a' + j);
+				mvwaddch(win, y + 5 * 7 + 4, x + 10 * j, 'a' + (flipped ? 7 - j : j));
 			}
 			if (j == 7) {
 				set_color(win, fg);
-				mvwaddch(win, y + 5 * (7 - i), x + 79, '1' + i);
+				mvwaddch(win, y + 5 * (7 - i), x + 79, '1' + (flipped ? 7 - i : i));
 			}
 		}
 	}

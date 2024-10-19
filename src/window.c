@@ -1,6 +1,7 @@
 #include "window.h"
 
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "color.h"
 #include "topbar.h"
@@ -8,15 +9,26 @@
 #include "draw.h"
 #include "engines.h"
 #include "editengine.h"
+#include "analysis.h"
+#include "editwin.h"
 
 #define MINLINES 56
 #define MINCOLS 117
 
-struct window topbar, mainwin, editwin, newgame, settings, engines, editengine;
+struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis;
 
-struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine };
+struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine, &analysis };
 
 const int nwins = sizeof(wins) / sizeof(*wins);
+
+void die(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	endwin();
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+	exit(1);
+}
 
 void window_init(void) {
 	topbar.win = newwin(0, 0, 0, 0);
@@ -29,6 +41,7 @@ void window_init(void) {
 
 	editwin.win = newwin(0, 0, 0, 0);
 	keypad(editwin.win, TRUE);
+	editwin.event = &editwin_event;
 
 	newgame.win = newwin(0, 0, 0, 0);
 	keypad(newgame.win, TRUE);
@@ -43,14 +56,15 @@ void window_init(void) {
 	editengine.win = newwin(0, 0, 0, 0);
 	keypad(editengine.win, TRUE);
 	editengine.event = &editengine_event;
+
+	analysis.win = newwin(0, 0, 0, 0);
+	keypad(analysis.win, TRUE);
+	analysis.event = &analysis_event;
 }
 
 void window_resize(void) {
-	if (LINES < MINLINES || COLS < MINCOLS) {
-		endwin();
-		fprintf(stderr, "error: terminal needs to be of size at least %dx%d\n", MINLINES, MINCOLS);
-		exit(1);
-	}
+	if (LINES < MINLINES || COLS < MINCOLS)
+		die("error: terminal needs to be of size at least %dx%d\n", MINLINES, MINCOLS);
 	draw_fill(stdscr, &cs.bg, 0, 0, LINES, COLS);
 	draw_border(stdscr, &cs.bg, &cs.border, &cs.bordershadow, 1, 1, 2, LINES - 2, COLS - 4);
 
@@ -58,9 +72,8 @@ void window_resize(void) {
 	mainwin_resize();
 	engines_resize();
 	editengine_resize();
-
-	wresize(editwin.win, LINES - 8, COLS - 10);
-	mvwin(editwin.win, 5, 4);
+	analysis_resize();
+	editwin_resize();
 
 	wresize(newgame.win, LINES - 8, COLS - 10);
 	mvwin(newgame.win, 5, 4);
@@ -106,11 +119,16 @@ void print_order(void) {
 void place_top(struct window *win) {
 	if (win == wins[0])
 		return;
-	/* If we are putting topbar on top, put mainwin on top first, so that
-	 * it comes second.
+	/* If we are putting topbar on top, put mainwin or editwin on top first,
+	 * so that it comes second.
 	 */
-	if (win == &topbar)
-		place_top(&mainwin);
+	if (win == &topbar) {
+		int i;
+		for (i = 0; i < nwins; i++)
+			if (wins[i] == &mainwin || wins[i] == &editwin)
+				break;
+		place_top(wins[i]);
+	}
 	for (int i = nwins - 1, flag = 0; i >= 1; i--) {
 		if (wins[i] != win && !flag)
 			continue;

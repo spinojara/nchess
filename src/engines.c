@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "window.h"
 #include "color.h"
@@ -12,8 +14,12 @@ static int refreshed = 0;
 
 static int selected = 0;
 
-static int nengines = 0; static int sengines = 0;
-static struct uciengine *uciengines = NULL;
+static int noconfig = 1;
+static int configchanged = 0;
+
+int nengines = 0;
+int sengines = 0;
+struct uciengine *uciengines = NULL;
 
 void engines_draw();
 
@@ -76,7 +82,13 @@ void engines_event(chtype ch, MEVENT *event) {
 		engines_draw();
 }
 
+int enginecmp(const void *e1, const void *e2) {
+	return strcmp(((struct uciengine *)e1)->name, ((struct uciengine *)e2)->name);
+}
+
 void engines_add(struct uciengine *edit, char *name, char *command, char *workingdir) {
+	if (!noconfig)
+		configchanged = 1;
 	char *namep = malloc(strlen(name) + 1);
 	memcpy(namep, name, strlen(name) + 1);
 	char *commandp = malloc(strlen(command) + 1);
@@ -90,7 +102,7 @@ void engines_add(struct uciengine *edit, char *name, char *command, char *workin
 		edit->name = namep;
 		edit->command = commandp;
 		edit->workingdir = workingdirp;
-		return;
+		goto sort;
 	}
 
 	if (nengines >= sengines) {
@@ -101,9 +113,15 @@ void engines_add(struct uciengine *edit, char *name, char *command, char *workin
 	uciengines[nengines].command = commandp;
 	uciengines[nengines].workingdir = workingdirp;
 	nengines++;
+	selected = 0;
+
+sort:
+	qsort(uciengines, nengines, sizeof(*uciengines), &enginecmp);
 }
 
 void engines_remove(struct uciengine *edit) {
+	if (!noconfig)
+		configchanged = 1;
 	int i;
 	for (i = 0; i < nengines; i++)
 		if (edit == &uciengines[i])
@@ -143,4 +161,116 @@ void engines_resize(void) {
 	mvwin(engines.win, 7, 7);
 
 	engines_draw();
+}
+
+int engines_readconfig(void) {
+	const char *home = getenv("HOME");
+	if (home == NULL)
+		return 1;
+
+	char buf[8192];
+	if (strlen(home) > 4192)
+		return 1;
+
+	sprintf(buf, "%s/.config/nchess/engines.conf", home);
+	FILE *f = fopen(buf, "r");
+	if (!f) {
+		noconfig = 0;
+		return 0;
+	}
+
+	char *endptr;
+	int n, i;
+	char name[8192];
+	char command[8192];
+	char workingdir[8192];
+	while (1) {
+		if (!fgets(buf, sizeof(buf), f))
+			break;
+
+		errno = 0;
+		n = strtol(buf, &endptr, 10);
+		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
+			goto error;
+
+		for (i = 0; i < n; i++)
+			name[i] = fgetc(f);
+		name[i] = '\0';
+		/* newline */
+		fgetc(f);
+
+		if (!fgets(buf, sizeof(buf), f))
+			goto error;
+
+		errno = 0;
+		n = strtol(buf, &endptr, 10);
+		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
+			goto error;
+
+		for (i = 0; i < n; i++)
+			command[i] = fgetc(f);
+		command[i] = '\0';
+		/* newline */
+		fgetc(f);
+
+		if (!fgets(buf, sizeof(buf), f))
+			goto error;
+
+		errno = 0;
+		n = strtol(buf, &endptr, 10);
+		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
+			goto error;
+
+		for (i = 0; i < n; i++)
+			workingdir[i] = fgetc(f);
+		workingdir[i] = '\0';
+		/* newline */
+		fgetc(f);
+
+		engines_add(NULL, name, command, workingdir);
+	}
+
+	fclose(f);
+	noconfig = 0;
+	return 0;
+
+error:
+	return 1;
+}
+
+int engines_writeconfig(void) {
+	if (noconfig || !configchanged)
+		return 0;
+	const char *home = getenv("HOME");
+	if (home == NULL)
+		return 1;
+
+	char buf[8192];
+	if (strlen(home) > 4192)
+		return 1;
+
+	sprintf(buf, "%s/.config", home);
+	errno = 0;
+	if (mkdir(buf, 0700) && errno != EEXIST)
+		return 1;
+
+	strcat(buf, "/nchess");
+	errno = 0;
+	if (mkdir(buf, 0700) && errno != EEXIST)
+		return 1;
+
+	strcat(buf, "/engines.conf");
+	FILE *f = fopen(buf, "w");
+	if (!f)
+		return 1;
+
+	for (int i = 0; i < nengines; i++) {
+		struct uciengine *e = &uciengines[i];
+		fprintf(f, "%ld\n%s\n", strlen(e->name), e->name);
+		fprintf(f, "%ld\n%s\n", strlen(e->command), e->command);
+		fprintf(f, "%ld\n%s\n", strlen(e->workingdir), e->workingdir);
+	}
+
+	fclose(f);
+	return 0;
 }

@@ -11,6 +11,10 @@
 #include "window.h"
 #include "mainwin.h"
 #include "editengine.h"
+#include "info.h"
+#include "editwin.h"
+
+int running = 1;
 
 int main(void) {
 	setlocale(LC_ALL, "");
@@ -29,23 +33,29 @@ int main(void) {
 	mouseinterval(0);
 	mousemask(BUTTON1_PRESSED | BUTTON1_RELEASED, NULL);
 
-	window_init();
 	mainwin_init();
+	window_init();
 	window_resize();
 	editengine_init();
 
+	if (engines_readconfig()) {
+		running = 0;
+		info("Config Error", "An unrecoverable error occured while parsing the engine configuration file (~/.config/nchess/engine.conf). Please fix or delete the file, then try again.", INFO_ERROR, 7, 62);
+	}
+
 	MEVENT event;
 	chtype ch;
-	while (1) {
+	while (running) {
 		ch = wgetch(wins[0]->win);
-		if (ch == 'q')
-			break;
+		if (ch == 'q' && wins[0] != &editengine)
+			running = 0;
 		else if (ch == KEY_MOUSE) {
 			if (getmouse(&event) != OK)
 				continue;
-			if (event.bstate & BUTTON1_RELEASED && (wins[0] != &mainwin || !wenclose(mainwin.win, event.y, event.x)))
+			if (event.bstate & BUTTON1_RELEASED && ((wins[0] != &mainwin && wins[0] != &editwin) || !wenclose(mainwin.win, event.y, event.x)))
 				continue;
 			if (event.bstate & BUTTON1_RELEASED) {
+				/* This is fine even if editwin is on top, the windows are the same size. */
 				wmouse_trafo(mainwin.win, &event.y, &event.x, FALSE);
 			}
 			else if (event.bstate & BUTTON1_PRESSED) {
@@ -71,4 +81,6 @@ int main(void) {
 	}
 
 	endwin();
+	end_analysis();
+	engines_writeconfig();
 }

@@ -4,6 +4,8 @@
 
 #include "window.h"
 #include "draw.h"
+#include "mainwin.h"
+#include "editwin.h"
 
 static int selected = 0;
 
@@ -38,8 +40,6 @@ void topbar_event(chtype ch, MEVENT *event) {
 	case KEY_DOWN:
 		place_top(&mainwin);
 		break;
-	case 'i':
-		place_top(&engines);
 		break;
 	case KEY_MOUSE:
 		if (event->x < 3)
@@ -64,8 +64,18 @@ void topbar_event(chtype ch, MEVENT *event) {
 		}
 		/* fallthrough */
 	case '\n':
-		if (selected == 2)
+		switch (selected) {
+		case 2:
 			place_top(&engines);
+			break;
+		case 3:
+			pos = posd;
+			place_top(&editwin);
+			break;
+		case 4:
+			place_top(&analysis);
+			break;
+		}
 	}
 
 	if (!refreshed)

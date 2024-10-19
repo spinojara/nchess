@@ -30,6 +30,7 @@ struct colors {
 	struct color texthl;
 	struct color textdim;
 	struct color textblue;
+	struct color texterror;
 
 	struct color red;
 };

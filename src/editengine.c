@@ -98,7 +98,7 @@ void editengine_draw(void) {
 	set_color(editengine.win, &cs.text);
 	mvwaddstr(editengine.win, 1, 2, "Name:");
 	mvwaddstr(editengine.win, 2, 2, "Command:");
-	mvwaddstr(editengine.win, 3, 2, "Working dir:");
+	mvwaddstr(editengine.win, 3, 2, "Working Dir:");
 	set_color(editengine.win, selected == 3 ? &cs.texthl : &cs.text);
 	mvwaddstr(editengine.win, 4, 10, "< Save >");
 	set_color(editengine.win, selected == 4 ? &cs.texthl : &cs.text);

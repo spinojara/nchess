@@ -9,13 +9,16 @@
 #include "position.h"
 #include "move.h"
 #include "board.h"
+#include "engine.h"
 
 static int refreshed = 0;
 
 static int selectedsquare = -1;
 
+static int flipped = 0;
+
 /* Displayed position. */
-static struct position posd;
+struct position posd;
 /* Actual position. */
 static struct position posa;
 
@@ -29,6 +32,8 @@ static struct {
 	int color;
 	int fullmove;
 } *vmove = NULL;
+
+struct engineconnection *analysisengine = NULL;
 
 void mainwin_draw(void);
 void put_move(struct move *move, int at_end);
@@ -61,6 +66,8 @@ void mainwin_event(chtype ch, MEVENT *event) {
 			/* Board. */
 			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41) {
 				int new = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
+				if (flipped)
+					new = 63 - new;
 				if (posd.mailbox[new].type != EMPTY && posd.mailbox[new].color == posd.turn)
 					selectedsquare = new;
 				refreshed = 0;
@@ -98,6 +105,8 @@ void mainwin_event(chtype ch, MEVENT *event) {
 			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1) {
 				struct move move;
 				int to = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
+				if (flipped)
+					to = 63 - to;
 				if (to == selectedsquare)
 					break;
 				new_move(&move, selectedsquare, to, 0, 0);
@@ -118,6 +127,21 @@ void mainwin_event(chtype ch, MEVENT *event) {
 
 	if (!refreshed)
 		mainwin_draw();
+}
+
+void start_analysis(struct uciengine *ue) {
+	end_analysis();
+
+	analysisengine = malloc(sizeof(*analysisengine));
+	engine_open(analysisengine, ue);
+}
+
+void end_analysis(void) {
+	if (analysisengine) {
+		engine_close(analysisengine);
+		free(analysisengine);
+		analysisengine = NULL;
+	}
 }
 
 int backward_move(void) {
@@ -200,18 +224,29 @@ void moves_draw(void) {
 	}
 }
 
-void fen_draw(void) {
-	char fen[128] = { 0 };
-	pos_to_fen(fen, &posd);
+void fen_draw(WINDOW *win, struct position *pos) {
+	char fen[128];
+	memset(fen, ' ', 128);
+	pos_to_fen(fen, pos);
 	/* Limit the length of the fen. In very rare cases this would actually
 	 * make parts of the fen invisible.
 	 */
-	fen[77] = '.';
-	fen[78] = '.';
-	fen[79] = '.';
+	if (strlen(fen) > 80) {
+		fen[77] = '.';
+		fen[78] = '.';
+		fen[79] = '.';
+	}
+	else {
+		fen[strlen(fen)] = ' ';
+	}
 	fen[80] = '\0';
-	set_color(mainwin.win, &cs.text);
-	mvwprintw(mainwin.win, 43, 1, "%s", fen);
+	set_color(win, &cs.text);
+	mvwprintw(win, 43, 1, "%s", fen);
+}
+
+static void analysis_draw(void) {
+	if (!analysisengine)
+		return;
 }
 
 void mainwin_draw(void) {
@@ -232,9 +267,10 @@ void mainwin_draw(void) {
 	mvwaddch(mainwin.win, 5 * 8 + 3, 101, ACS_RARROW);
 	mvwaddch(mainwin.win, 5 * 8 + 3, 102, ACS_RARROW);
 
-	board_draw(mainwin.win, 1, 1, &posd, selectedsquare);
+	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped);
 	moves_draw();
-	fen_draw();
+	fen_draw(mainwin.win, &posd);
+	analysis_draw();
 	wrefresh(mainwin.win);
 	refreshed = 1;
 }

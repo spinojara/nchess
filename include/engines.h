@@ -3,28 +3,11 @@
 
 #include <ncurses.h>
 
-enum {
-	TYPE_CHECK,
-	TYPE_SPIN,
-	TYPE_STRING,
-	TYPE_BUTTON,
-};
+#include "engine.h"
 
-/* value is a NULL pointer if there is no value,
- * i.e. for Clear Hash.
- */
-struct ucioption {
-	char *name;
-	char *value;
-	int type;
-};
-
-struct uciengine {
-	char *name;
-	char *command;
-	char *workingdir;
-	struct ucioption *ucioptions;
-};
+extern int nengines;
+extern int sengines;
+extern struct uciengine *uciengines;
 
 void engines_event(chtype ch, MEVENT *event);
 
@@ -33,5 +16,9 @@ void engines_resize(void);
 void engines_add(struct uciengine *edit, char *name, char *command, char *workingdir);
 
 void engines_remove(struct uciengine *edit);
+
+int engines_readconfig(void);
+
+int engines_writeconfig(void);
 
 #endif

@@ -3,10 +3,21 @@
 
 #include <ncurses.h>
 
+#include "engine.h"
+#include "position.h"
+
+extern struct position posd;
+
 void mainwin_event(chtype ch, MEVENT *event);
 
 void mainwin_resize(void);
 
 void mainwin_init(void);
+
+void start_analysis(struct uciengine *ue);
+
+void end_analysis(void);
+
+void fen_draw(WINDOW *win, struct position *pos);
 
 #endif

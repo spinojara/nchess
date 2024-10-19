@@ -35,6 +35,7 @@ void make_colors(void) {
 	COLOR(cs.texthl,       COLOR_WHITE,  COLOR_BLUE,  A_NORMAL | A_BOLD);
 	COLOR(cs.textdim,      COLOR_WHITE,  COLOR_WHITE, A_DIM);
 	COLOR(cs.textblue,     COLOR_BLUE,   COLOR_WHITE, A_NORMAL);
+	COLOR(cs.texterror,    COLOR_RED,    COLOR_WHITE, A_NORMAL);
 
 	COLOR(cs.red,          COLOR_BLACK,  COLOR_RED,   A_NORMAL);
 
@@ -57,6 +58,7 @@ void make_colors(void) {
 	make_color(&cs.texthl);
 	make_color(&cs.textdim);
 	make_color(&cs.textblue);
+	make_color(&cs.texterror);
 
 	make_color(&cs.red);
 }
