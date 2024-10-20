@@ -1,4 +1,3 @@
-- Checking fens for legality.
 - Board editor en passant.
 - Add button for rotating board.
-- Let the different ui parts handle 'q' separately.
+- Halfmove.
