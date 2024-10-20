@@ -35,6 +35,7 @@ void window_init(void) {
 	topbar.win = newwin(0, 0, 0, 0);
 	keypad(topbar.win, TRUE);
 	topbar.event = &topbar_event;
+	wtimeout(topbar.win, 200);
 
 	mainwin.win = newwin(0, 0, 0, 0);
 	keypad(mainwin.win, TRUE);

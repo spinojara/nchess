@@ -47,8 +47,11 @@ int main(void) {
 	int ch;
 	while (running) {
 		ch = wgetch(wins[0]->win);
-		if (ch == ERR)
+		if (ch == ERR) {
 			ch = 0;
+			if (wins[0] != &mainwin)
+				mainwin.event(0, NULL);
+		}
 		if (ch == KEY_MOUSE) {
 			if (getmouse(&event) != OK)
 				continue;

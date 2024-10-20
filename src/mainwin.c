@@ -93,7 +93,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
 
-	if (fenselected) {
+	if (fenselected && ch != 0) {
 		refreshed = 0;
 		if (ch != '\n' && ch != 0) {
 			field_driver(&fen, ch, event);
@@ -1015,6 +1015,7 @@ void set_position(struct position *pos) {
 	posd = posa = *pos;
 	nmove = 0;
 	selectedmove = -1;
+	reset_analysis();
 }
 
 int prompt_promotion(int square) {
