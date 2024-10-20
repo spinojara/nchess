@@ -17,8 +17,6 @@ static int selectedpiece = -1;
 
 static int illegal = 0;
 
-static int flipped = 0;
-
 void editwin_draw(void);
 
 void editwin_event(chtype ch, MEVENT *event) {

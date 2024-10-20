@@ -8,6 +8,8 @@
 
 extern struct position posd;
 
+extern int flipped;
+
 void mainwin_event(chtype ch, MEVENT *event);
 
 void mainwin_resize(void);

@@ -16,7 +16,7 @@ static int refreshed = 0;
 
 static int selectedsquare = -1;
 
-static int flipped = 0;
+int flipped = 0;
 
 /* Displayed position. */
 struct position posd;

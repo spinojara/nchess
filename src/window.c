@@ -11,6 +11,7 @@
 #include "editengine.h"
 #include "analysis.h"
 #include "editwin.h"
+#include "settings.h"
 
 #define MINLINES 56
 #define MINCOLS 117
@@ -48,6 +49,7 @@ void window_init(void) {
 
 	settings.win = newwin(0, 0, 0, 0);
 	keypad(settings.win, TRUE);
+	settings.event = &settings_event;
 
 	engines.win = newwin(0, 0, 0, 0);
 	keypad(engines.win, TRUE);
@@ -75,12 +77,10 @@ void window_resize(void) {
 	editengine_resize();
 	analysis_resize();
 	editwin_resize();
+	settings_resize();
 
 	wresize(newgame.win, LINES - 8, COLS - 10);
 	mvwin(newgame.win, 5, 4);
-
-	wresize(settings.win, LINES - 8, COLS - 10);
-	mvwin(settings.win, 5, 4);
 
 	touchwin(stdscr);
 	wrefresh(stdscr);
