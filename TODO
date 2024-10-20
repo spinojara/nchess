@@ -1,3 +1,5 @@
 - Board editor en passant.
 - Add button for rotating board.
 - Halfmove.
+- Add checks for read and write to engines.
+- Add checks for error variable in parse_analysis. Maybe a popup window.

@@ -1,7 +1,7 @@
 #include "move.h"
 
 #include <stdio.h>
-
+#include <string.h>
 #include <ncurses.h>
 
 #include "position.h"
@@ -541,6 +541,34 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 	return str;
 }
 
-int movecmp(struct move *a, struct move *b) {
+char *move_algebraic(char *str, const struct move *m) {
+	algebraic(str, m->from);
+	algebraic(str + 2, m->to);
+
+	if (m->promotion) {
+		str[4] = "??NBRQ"[m->promotion];
+		str[5] = '\0';
+	}
+
+	return str;
+}
+
+int movecmp(const struct move *a, const struct move *b) {
 	return a->from != b->from || a->to != b->to || a->flag != b->flag || a->promotion != b->promotion;
+}
+
+struct move *string_to_move(struct move *move, struct position *pos, const char *str) {
+	if (!str)
+		return NULL;
+	struct move moves[MOVES_MAX];
+	movegen(pos, moves, 0);
+	char s[6];
+	for (int i = 0; !is_null(&moves[i]); i++) {
+		if (!strcmp(move_algebraic(s, &moves[i]), str)) {
+			*move = moves[i];
+			return move;
+		}
+	}
+
+	return NULL;
 }

@@ -39,6 +39,7 @@ void window_init(void) {
 	mainwin.win = newwin(0, 0, 0, 0);
 	keypad(mainwin.win, TRUE);
 	mainwin.event = &mainwin_event;
+	wtimeout(mainwin.win, 25);
 
 	editwin.win = newwin(0, 0, 0, 0);
 	keypad(editwin.win, TRUE);

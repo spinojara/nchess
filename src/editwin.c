@@ -119,6 +119,10 @@ void editwin_event(chtype ch, MEVENT *event) {
 			}
 		}
 		break;
+	case 'q':
+	case KEY_ESC:
+		refreshed = 1;
+		place_top(&mainwin);
 	}
 
 	if (!refreshed)

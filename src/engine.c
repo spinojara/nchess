@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include "window.h"
 
@@ -22,6 +23,11 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 		close(childparent[0]);
 		dup2(parentchild[0], STDIN_FILENO);
 		dup2(childparent[1], STDOUT_FILENO);
+		int fd = open("/dev/null", O_WRONLY);
+		dup2(fd, STDERR_FILENO);
+
+		if (ue->workingdir[0])
+			chdir(ue->workingdir);
 
 		execlp(ue->command, ue->command, (char *)NULL);
 		exit(-1);
@@ -31,6 +37,8 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 	close(childparent[1]);
 	ec->w = fdopen(parentchild[1], "w");
 	setbuf(ec->w, NULL);
+	int flags = fcntl(childparent[0], F_GETFL, 0);
+	fcntl(childparent[0], F_SETFL, flags | O_NONBLOCK);
 	ec->r = fdopen(childparent[0], "r");
 	setbuf(ec->r, NULL);
 }

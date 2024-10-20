@@ -44,9 +44,11 @@ int main(void) {
 	}
 
 	MEVENT event;
-	chtype ch;
+	int ch;
 	while (running) {
 		ch = wgetch(wins[0]->win);
+		if (ch == ERR)
+			ch = 0;
 		if (ch == KEY_MOUSE) {
 			if (getmouse(&event) != OK)
 				continue;

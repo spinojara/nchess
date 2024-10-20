@@ -245,8 +245,9 @@ char *pos_to_fen(char *fen, const struct position *pos) {
 		fen[k++] = 'k';
 	if (pos->q)
 		fen[k++] = 'q';
-	if (pos->K || pos->Q || pos->k || pos->q)
-		fen[k++] = ' ';
+	if (!pos->K && !pos->Q && !pos->k && !pos->q)
+		fen[k++] = '-';
+	fen[k++] = ' ';
 	algebraic(fen + k, en_passant_needed(pos) ? pos->en_passant : -1);
 	if (fen[k] == '-')
 		k++;
@@ -335,4 +336,10 @@ int make_legal(struct position *pos) {
 
 	*pos = copy;
 	return 1;
+}
+
+int is_mate(const struct position *pos) {
+	struct move moves[MOVES_MAX];
+	movegen(pos, moves, 0);
+	return is_null(moves);
 }
