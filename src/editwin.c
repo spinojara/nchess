@@ -130,7 +130,7 @@ void editwin_event(chtype ch, MEVENT *event) {
 }
 
 void editwin_draw(void) {
-	draw_fill(editwin.win, &cs.border, 0, 0, LINES, COLS);
+	draw_fill(editwin.win, &cs.border, 0, 0, LINES, COLS, NULL);
 	draw_border(editwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 0, 5 * 8 + 2, 10 * 8 + 2);
 	draw_border(editwin.win, NULL, &cs.bordershadow, &cs.border, 0, 5 * 8 + 2, 0, 3, 82);
 	draw_border(editwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 83, 42, 24);

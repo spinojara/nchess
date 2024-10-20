@@ -946,18 +946,26 @@ static void analysis_draw(void) {
 		mvwaddstr(mainwin.win, 3, 138, currmovestr);
 	}
 	for (int i = 0; i < npastinfo; i++) {
-		if (COLS >= 127)
+		if (COLS >= 127) {
+			mvwhline(mainwin.win, 8 + 2 * i, 109, ' ', 7);
 			mvwaddstr(mainwin.win, 8 + 2 * i, 109, depthstrs[i]);
-		if (COLS >= 134)
+		}
+		if (COLS >= 134) {
+			mvwhline(mainwin.win, 8 + 2 * i, 117, ' ', 6);
 			mvwaddstr(mainwin.win, 8 + 2 * i, 117, timestrs[i]);
+		}
 		if (COLS >= 141) {
+			mvwhline(mainwin.win, 8 + 2 * i, 124, ' ', 6);
 			mvwaddstr(mainwin.win, 8 + 2 * i, 124, scorestrs[i]);
 			if (pastinfo[i].lowerbound || pastinfo[i].upperbound)
 				mvwaddch(mainwin.win, 8 + 2 * i, 124, pastinfo[i].lowerbound ? ACS_GEQUAL : ACS_LEQUAL);
 		}
-		if (COLS >= 148)
+		if (COLS >= 148) {
+			mvwhline(mainwin.win, 8 + 2 * i, 131, ' ', 6);
 			mvwaddstr(mainwin.win, 8 + 2 * i, 131, nodesstrs[i]);
+		}
 		if (COLS >= 157) {
+			mvwhline(mainwin.win, 8 + 2 * i, 138, ' ', COLS - 149);
 			if ((int)strlen(pvstrs[i]) >= COLS - 149) {
 				pvstrs[i][COLS - 152] = '.';
 				pvstrs[i][COLS - 151] = '.';
@@ -966,11 +974,28 @@ static void analysis_draw(void) {
 			}
 			mvwaddstr(mainwin.win, 8 + 2 * i, 138, pvstrs[i]);
 		}
+		/* Have to refresh here for otherwise the terminal flickers... */
+		wrefresh(mainwin.win);
 	}
 }
 
+int exclude(int y, int x) {
+	int xmax = 0;
+	if (COLS >= 127)
+		xmax = 116;
+	if (COLS >= 134)
+		xmax = 123;
+	if (COLS >= 141)
+		xmax = 130;
+	if (COLS >= 148)
+		xmax = 137;
+	if (COLS >= 157)
+		xmax = COLS - 11;
+	return 8 <= y && y <= 41 && 109 <= x && x <= xmax;
+}
+
 void mainwin_draw(void) {
-	draw_fill(mainwin.win, &cs.border, 0, 0, LINES, COLS);
+	draw_fill(mainwin.win, &cs.border, 0, 0, LINES, COLS, analysisengine ? &exclude : 0);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 0, 5 * 8 + 2, 10 * 8 + 2);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 5 * 8 + 2, 0, 3, 82);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 83, 42, 24);
@@ -1026,7 +1051,7 @@ int prompt_promotion(int square) {
 	int up = rank > 4;
 	WINDOW *win = newwin(22, 12, 5 + !up * 20, 4 + 10 * file);
 	keypad(win, TRUE);
-	draw_fill(win, &cs.border, 1, 1, 20, 10);
+	draw_fill(win, &cs.border, 1, 1, 20, 10, NULL);
 	set_color(win, &cs.bordershadow);
 	mvwhline(win, 0, 1, ACS_HLINE, 10);
 	mvwvline(win, 1, 0, ACS_VLINE, 20);

@@ -1,14 +1,21 @@
 #include "draw.h"
 
-void draw_fill(WINDOW *win, struct color *bg, int ymin, int xmin, int ysize, int xsize) {
+void draw_fill(WINDOW *win, struct color *bg, int ymin, int xmin, int ysize, int xsize, int (*exclude)(int, int)) {
 	wattrset(win, bg->attr);
-	for (int y = ymin; y < ymin + ysize; y++)
-		mvwhline(win, y, xmin, ' ', xsize);
+	if (!exclude) {
+		for (int y = ymin; y < ymin + ysize; y++)
+			mvwhline(win, y, xmin, ' ', xsize);
+	}
+	else
+		for (int y = ymin; y < ymin + ysize; y++)
+			for (int x = xmin; x < xmin + xsize; x++)
+				if (!exclude(y, x))
+					mvwaddch(win, y, x, ' ');
 }
 
 void draw_border(WINDOW *win, struct color *bg, struct color *upper, struct color *lower, int fill, int ymin, int xmin, int ysize, int xsize) {
 	if (fill)
-		draw_fill(win, &cs.bordershadow, ymin, xmin, ysize, xsize);
+		draw_fill(win, &cs.bordershadow, ymin, xmin, ysize, xsize, NULL);
 
 	if (bg) {
 		ysize -= 1;
