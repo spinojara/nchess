@@ -718,7 +718,7 @@ void parsepermill(char str[7], long long n, int sent) {
 	if (n < 100000)
 		sprintf(str, "%lld%%", n / 10);
 	else
-		sprintf(str, "10000%%");
+		sprintf(str, "99999%%");
 }
 
 void parsenps(char str[7]) {
