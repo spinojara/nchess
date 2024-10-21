@@ -489,13 +489,13 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 	int need_file = 0;
 	int need_rank = 0;
 	int need = 0;
-	for (i = 0; !is_null(&moves[i]); i++) {
-		if (moves[i].from == move->from || moves[i].to != move->to || pos->mailbox[moves[i].from].type != piece)
+	for (int j = 0; !is_null(&moves[j]); j++) {
+		if (moves[j].from == move->from || moves[j].to != move->to || pos->mailbox[moves[j].from].type != piece)
 			continue;
 
-		if (file_of(moves[i].from) == f)
+		if (file_of(moves[j].from) == f)
 			need_rank = 1;
-		else if (rank_of(moves[i].to) == r)
+		else if (rank_of(moves[j].to) == r)
 			need_file = 1;
 		need = 1;
 	}
@@ -529,8 +529,8 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 	posc.turn = !posc.turn;
 	movegen(&posc, moves, 1);
 	int check = 0;
-	for (i = 0; !is_null(&moves[i]) && !check; i++)
-		if (posc.mailbox[moves[i].to].type == KING)
+	for (int j = 0; !is_null(&moves[j]) && !check; j++)
+		if (posc.mailbox[moves[j].to].type == KING)
 			check = 1;
 
 	if (check && mate)
