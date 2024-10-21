@@ -260,8 +260,19 @@ void parse_analysis(const struct position *current) {
 	struct position pos = { 0 };
 	char line[4096], *token, *endptr;
 	int error = 0;
+	char engineerror[520] = { 0 };
 	while (fgets(line, sizeof(line), analysisengine->r) && !error) {
 		struct uciinfo a = { 0 };
+		if ((token = strchr(line, '\n')))
+			*token = '\0';
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+		snprintf(engineerror, 520, "Poorly formatted engine output: %s", line);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 		token = strtok(line, " \n");
 		if (strcmp(token, "info"))
 			break;
@@ -472,9 +483,17 @@ void parse_analysis(const struct position *current) {
 					break;
 				}
 			}
+			else {
+				error = 1;
+				break;
+			}
 		}
 		if (!error && add && !dontadd)
 			add_analysis(&a);
+	}
+	if (error) {
+		info("Engine Error", engineerror, INFO_ERROR, 10, 80);
+		end_analysis();
 	}
 }
 
@@ -757,6 +776,9 @@ static void analysis_draw(void) {
 		return;
 
 	parse_analysis(&posd);
+	/* Maybe the engine was terminated and analysis cancelled. */
+	if (!analysisengine)
+		return;
 
 	char depthstrs[MAXPASTINFO][8] = { 0 };
 	char timestrs[MAXPASTINFO][7] = { 0 };
