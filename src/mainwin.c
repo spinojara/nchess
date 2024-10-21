@@ -78,7 +78,7 @@ static struct {
 	int fullmove;
 } *vmove = NULL;
 
-struct engineconnection *analysisengine = NULL;
+static struct engineconnection *analysisengine = NULL;
 
 void mainwin_draw(void);
 void put_move(struct move *move, int at_end);
@@ -258,24 +258,16 @@ void parse_analysis(const struct position *current) {
 	if (!analysisengine)
 		return;
 	struct position pos = { 0 };
-	char line[4096], *token, *endptr;
+	char line[4096], *token = NULL, *endptr;
 	int error = 0;
-	char engineerror[520] = { 0 };
+	char engineerror[4096] = { 0 };
 	while (fgets(line, sizeof(line), analysisengine->r) && !error) {
 		struct uciinfo a = { 0 };
 		if ((token = strchr(line, '\n')))
 			*token = '\0';
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-#endif
-		snprintf(engineerror, 520, "Poorly formatted engine output: %s", line);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-		token = strtok(line, " \n");
-		if (strcmp(token, "info"))
-			break;
+		memcpy(engineerror, line, sizeof(line));
+		if (!(token = strtok(line, " \n")) || strcmp(token, "info"))
+			continue;
 		int add = 0, dontadd = 0;
 		while ((token = strtok(NULL, " \n")) && !error) {
 			if (!strcmp(token, "depth")) {
@@ -286,7 +278,7 @@ void parse_analysis(const struct position *current) {
 					break;
 				}
 				errno = 0;
-				a.depth = strtol(token, &endptr, 10);
+				a.depth = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || a.depth < 0)
 					a.depth = 0;
 			}
@@ -294,11 +286,11 @@ void parse_analysis(const struct position *current) {
 				add = 1;
 				sentseldepth = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 2;
 					break;
 				}
 				errno = 0;
-				a.seldepth = strtol(token, &endptr, 10);
+				a.seldepth = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || a.seldepth < 0)
 					a.seldepth = 0;
 			}
@@ -306,11 +298,11 @@ void parse_analysis(const struct position *current) {
 				add = 1;
 				senttime = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 3;
 					break;
 				}
 				errno = 0;
-				a.t = strtol(token, &endptr, 10);
+				a.t = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || a.t < 0)
 					a.t = 0;
 			}
@@ -318,11 +310,11 @@ void parse_analysis(const struct position *current) {
 				add = 1;
 				sentnodes = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 4;
 					break;
 				}
 				errno = 0;
-				a.nodes = strtol(token, &endptr, 10);
+				a.nodes = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || a.nodes < 0)
 					a.nodes = 0;
 			}
@@ -330,27 +322,27 @@ void parse_analysis(const struct position *current) {
 				add = 1;
 				sentnps = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 5;
 					break;
 				}
 				errno = 0;
-				nps = strtol(token, &endptr, 10);
+				nps = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || nps < 0)
 					nps = 0;
 			}
 			else if (!strcmp(token, "score")) {
 				sentscore = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 6;
 					break;
 				}
 				if (!strcmp(token, "cp")) {
 					if (!(token = strtok(NULL, " \n"))) {
-						error = 1;
+						error = 7;
 						break;
 					}
 					errno = 0;
-					a.cp = strtol(token, &endptr, 10);
+					a.cp = strtoll(token, &endptr, 10);
 					if (errno || *endptr != '\0')
 						a.cp = 0;
 					if (current && !relativescore && current->turn == BLACK)
@@ -360,11 +352,11 @@ void parse_analysis(const struct position *current) {
 				}
 				else if (!strcmp(token, "mate")) {
 					if (!(token = strtok(NULL, " \n"))) {
-						error = 1;
+						error = 8;
 						break;
 					}
 					errno = 0;
-					a.mate = strtol(token, &endptr, 10);
+					a.mate = strtoll(token, &endptr, 10);
 					if (errno || *endptr != '\0')
 						a.mate = 0;
 					sentscore = 1;
@@ -387,12 +379,18 @@ void parse_analysis(const struct position *current) {
 				if (current)
 					pos = *current;
 				int k = 0;
-				while ((token = strtok(NULL, " \n")) && !error && k < MAXINFOPV) {
+				int illegalpv = 0;
+				while ((token = strtok(NULL, " \n")) && !error) {
+					if (k >= MAXINFOPV)
+						continue;
 					if (current) {
 						struct move move;
-						if (string_to_move(&move, &pos, token)) {
+						if (string_to_move(&move, &pos, token) && !illegalpv) {
 							move_pgn(a.pv[k++], &pos, &move);
 							do_move(&pos, &move);
+						}
+						else {
+							illegalpv = 1;
 						}
 					}
 					else {
@@ -409,7 +407,7 @@ void parse_analysis(const struct position *current) {
 			}
 			else if (!strcmp(token, "currmove")) {
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 9;
 					break;
 				}
 				dontadd = 1;
@@ -432,50 +430,50 @@ void parse_analysis(const struct position *current) {
 				dontadd = 1;
 				sentcurrmovenumber = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 10;
 					break;
 				}
 				errno = 0;
-				currmovenumber = strtol(token, &endptr, 10);
+				currmovenumber = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || currmovenumber <= 0)
 					currmovenumber = 1;
 			}
 			else if (!strcmp(token, "tbhits")) {
 				senttbhits = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 11;
 					break;
 				}
 				errno = 0;
-				tbhits = strtol(token, &endptr, 10);
+				tbhits = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || tbhits < 0)
 					tbhits = 0;
 			}
 			else if (!strcmp(token, "hashfull")) {
 				senthashfull = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 12;
 					break;
 				}
 				errno = 0;
-				hashfull = strtol(token, &endptr, 10);
+				hashfull = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || hashfull < 0)
 					hashfull = 0;
 			}
 			else if (!strcmp(token, "cpuload")) {
 				sentcpuload = 1;
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 13;
 					break;
 				}
 				errno = 0;
-				cpuload = strtol(token, &endptr, 10);
+				cpuload = strtoll(token, &endptr, 10);
 				if (errno || *endptr != '\0' || cpuload < 0)
 					cpuload = 0;
 			}
 			else if (!strcmp(token, "multipv")) {
 				if (!(token = strtok(NULL, " \n"))) {
-					error = 1;
+					error = 14;
 					break;
 				}
 				if (strcmp(token, "1")) {
@@ -484,7 +482,7 @@ void parse_analysis(const struct position *current) {
 				}
 			}
 			else {
-				error = 1;
+				error = 15;
 				break;
 			}
 		}
@@ -492,7 +490,8 @@ void parse_analysis(const struct position *current) {
 			add_analysis(&a);
 	}
 	if (error) {
-		info("Engine Error", engineerror, INFO_ERROR, 10, 80);
+		snprintf(line, 500, "error (%d): poorly formatted engine output: %s", error, engineerror);
+		info("Engine Error", line, INFO_ERROR, 10, 80);
 		end_analysis();
 	}
 }

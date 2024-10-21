@@ -3,6 +3,9 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <pthread.h>
+
+#include "timepoint.h"
 
 enum {
 	TYPE_CHECK,
@@ -32,7 +35,11 @@ struct uciengine {
 
 struct engineconnection {
 	pid_t pid;
+	pthread_t tid;
 	FILE *w, *r;
+
+	timepoint_t bestmovetime;
+	pthread_mutex_t mutex;
 };
 
 void engine_open(struct engineconnection *ec, struct uciengine *ue);

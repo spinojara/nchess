@@ -7,6 +7,8 @@ CSTANDARD = -std=c99 -DPOSIX_C_SOURCE=200112L
 CWARNINGS = -Wall -Wextra -Wshadow -pedantic -Wvla
 COPTIMIZE = -O2
 
+DEBUG = thread
+
 ifeq ($(DEBUG), yes)
 	CDEBUG = -g3 -ggdb
 else ifeq ($(DEBUG), thread)
