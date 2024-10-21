@@ -7,7 +7,15 @@ CSTANDARD = -std=c99 -DPOSIX_C_SOURCE=200112L
 CWARNINGS = -Wall -Wextra -Wshadow -pedantic -Wvla
 COPTIMIZE = -O2
 
-CDEBUG    = -ggdb3 -fsanitize=address,undefined
+ifeq ($(DEBUG), yes)
+	CDEBUG = -g3 -ggdb
+else ifeq ($(DEBUG), thread)
+	CDEBUG = -g3 -ggdb -fsanitize=thread,undefined
+else ifeq ($(DEBUG), address)
+	CDEBUG = -g3 -ggdb -fsanitize=address,undefined
+else ifeq ($(DEBUG), )
+	CDEBUG = -DNDEBUG
+endif
 
 CFLAGS  ::= $(CSTANDARD) $(CWARNINGS) $(COPTIMIZE) $(CDEBUG) $(shell pkg-config --cflags ncurses) -Iinclude
 LDLIBS  ::= $(shell pkg-config --libs ncurses)
@@ -21,6 +29,10 @@ OBJ       = $(patsubst %.c,obj/%.o,$(SRC))
 
 PREFIX    = /usr/local
 BINDIR    = $(PREFIX)/bin
+
+ifneq ($(STATIC), )
+	LDFLAGS += -static
+endif
 
 all: nchess
 
