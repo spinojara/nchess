@@ -30,6 +30,11 @@ void *engine_listen(void *arg) {
 			ec->bestmovetime = t;
 			pthread_mutex_unlock(&ec->mutex);
 		}
+		else if (!strcmp(line, "readyok\n")) {
+			pthread_mutex_lock(&ec->mutex);
+			ec->readyok = 1;
+			pthread_mutex_unlock(&ec->mutex);
+		}
 		fprintf(w, "%s", line);
 	}
 	fclose(w);
@@ -71,6 +76,7 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 	setbuf(ec->w, NULL);
 	int flags = fcntl(parentparent[0], F_GETFL, 0);
 	fcntl(parentparent[0], F_SETFL, flags | O_NONBLOCK);
+	ec->error = ec->isready = ec->readyok = 0;
 
 	struct arg *arg = malloc(sizeof(*arg));
 	arg->w = fdopen(parentparent[1], "w");
@@ -102,4 +108,18 @@ void engine_close(struct engineconnection *ec) {
 join:
 	pthread_join(ec->tid, NULL);
 	pthread_mutex_destroy(&ec->mutex);
+}
+
+int engine_readyok(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	int readyok = ec->readyok;
+	pthread_mutex_unlock(&ec->mutex);
+	return readyok;
+}
+
+int engine_isready(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	ec->readyok = 0;
+	pthread_mutex_unlock(&ec->mutex);
+	return fprintf(ec->w, "isready\n") < 0;
 }

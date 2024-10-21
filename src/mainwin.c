@@ -229,12 +229,20 @@ void reset_analysis(void) {
 	sentcurrmove = 0;
 	sentcurrmovenumber = 0;
 	npastinfo = 0;
-	fprintf(analysisengine->w, "stop\n");
+	if (fprintf(analysisengine->w, "stop\n") < 0)
+		goto error;
 	if (is_mate(&posd))
 		return;
 	char fenstr[128];
-	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd));
-	fprintf(analysisengine->w, "go infinite\n");
+	if (engine_isready(analysisengine))
+		goto error;
+	if (fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd)) < 0)
+		goto error;
+	if (fprintf(analysisengine->w, "go infinite\n") < 0)
+		goto error;
+	return;
+error:
+	end_analysis();
 }
 
 void start_analysis(struct uciengine *ue) {
@@ -261,7 +269,7 @@ void parse_analysis(const struct position *current) {
 	char line[4096], *token = NULL, *endptr;
 	int error = 0;
 	char engineerror[4096] = { 0 };
-	while (fgets(line, sizeof(line), analysisengine->r) && !error) {
+	while (engine_readyok(analysisengine) && fgets(line, sizeof(line), analysisengine->r) && !error) {
 		struct uciinfo a = { 0 };
 		if ((token = strchr(line, '\n')))
 			*token = '\0';

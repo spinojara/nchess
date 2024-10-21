@@ -38,6 +38,10 @@ struct engineconnection {
 	pthread_t tid;
 	FILE *w, *r;
 
+	int isready;
+	int readyok;
+	int error;
+
 	timepoint_t bestmovetime;
 	pthread_mutex_t mutex;
 };
@@ -45,5 +49,9 @@ struct engineconnection {
 void engine_open(struct engineconnection *ec, struct uciengine *ue);
 
 void engine_close(struct engineconnection *ec);
+
+int engine_readyok(struct engineconnection *ec);
+
+int engine_isready(struct engineconnection *ec);
 
 #endif
