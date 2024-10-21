@@ -27,7 +27,8 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 		dup2(fd, STDERR_FILENO);
 
 		if (ue->workingdir[0])
-			chdir(ue->workingdir);
+			if (chdir(ue->workingdir))
+				exit(-1);
 
 		execlp(ue->command, ue->command, (char *)NULL);
 		exit(-1);
