@@ -1,0 +1,11 @@
+/*
+**/.*
+
+!.gitignore
+!README.md
+!TODO
+!COPYING
+!Makefile
+
+!src
+!include
