@@ -232,8 +232,8 @@ void reset_analysis(void) {
 	fprintf(analysisengine->w, "stop\n");
 	if (is_mate(&posd))
 		return;
-	char fen[128];
-	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fen, &posd));
+	char fenstr[128];
+	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd));
 	fprintf(analysisengine->w, "go infinite\n");
 }
 
@@ -567,23 +567,23 @@ void moves_draw(void) {
 }
 
 void fen_draw(WINDOW *win, struct position *pos) {
-	char fen[128];
-	memset(fen, ' ', 128);
-	pos_to_fen(fen, pos);
+	char fenstr[128];
+	memset(fenstr, ' ', 128);
+	pos_to_fen(fenstr, pos);
 	/* Limit the length of the fen. In very rare cases this would actually
 	 * make parts of the fen invisible.
 	 */
-	if (strlen(fen) > 78) {
-		fen[75] = '.';
-		fen[76] = '.';
-		fen[77] = '.';
+	if (strlen(fenstr) > 78) {
+		fenstr[75] = '.';
+		fenstr[76] = '.';
+		fenstr[77] = '.';
 	}
 	else {
-		fen[strlen(fen)] = ' ';
+		fenstr[strlen(fenstr)] = ' ';
 	}
-	fen[78] = '\0';
+	fenstr[78] = '\0';
 	set_color(win, fenselected ? &cs.red : &cs.text);
-	mvwprintw(win, 43, 2, "%s", fen);
+	mvwprintw(win, 43, 2, "%s", fenstr);
 }
 
 int fen_filter(char c) {

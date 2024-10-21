@@ -73,12 +73,12 @@ void topbar_event(chtype ch, MEVENT *event) {
 			break;
 		case 3:
 			/* Only reset the edited position if mainwin is above editwin. */
-			for (int i = 0; i < nwins; i++) {
-				if (wins[i] == &mainwin) {
+			for (int j = 0; j < nwins; j++) {
+				if (wins[j] == &mainwin) {
 					pos = posd;
 					break;
 				}
-				else if (wins[i] == &editwin)
+				else if (wins[j] == &editwin)
 					break;
 			}
 			place_top(&editwin);
@@ -98,10 +98,10 @@ void topbar_event(chtype ch, MEVENT *event) {
 }
 
 void topbar_draw(void) {
-	int x, y;
+	int x, y, i;
 	getmaxyx(topbar.win, y, x);
 	draw_fill(topbar.win, &cs.border, 0, 0, y, x, NULL);
-	for (int i = 0, x = 3; i < noptions; i++) {
+	for (i = 0, x = 3; i < noptions; i++) {
 		set_color(topbar.win, selected == i && wins[0] == &topbar ? &cs.texthl : &cs.text);
 		mvwprintw(topbar.win, 1, x, "< %s >", options[i]);
 		x += strlen(options[i]) + 6;
