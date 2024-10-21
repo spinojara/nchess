@@ -38,7 +38,7 @@ struct engineconnection {
 	pthread_t tid;
 	FILE *w, *r;
 
-	int isready;
+	timepoint_t isready;
 	int readyok;
 	int error;
 
@@ -48,10 +48,14 @@ struct engineconnection {
 
 void engine_open(struct engineconnection *ec, struct uciengine *ue);
 
-void engine_close(struct engineconnection *ec);
+int engine_close(struct engineconnection *ec);
 
 int engine_readyok(struct engineconnection *ec);
 
 int engine_isready(struct engineconnection *ec);
+
+void engine_seterror(struct engineconnection *ec);
+
+int engine_error(struct engineconnection *ec);
 
 #endif

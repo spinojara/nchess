@@ -90,6 +90,9 @@ int prompt_promotion(int square);
 void reset_analysis(void);
 
 void mainwin_event(chtype ch, MEVENT *event) {
+	if (analysisengine && engine_error(analysisengine))
+		end_analysis();
+
 	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
 
@@ -229,20 +232,14 @@ void reset_analysis(void) {
 	sentcurrmove = 0;
 	sentcurrmovenumber = 0;
 	npastinfo = 0;
-	if (fprintf(analysisengine->w, "stop\n") < 0)
-		goto error;
+	fprintf(analysisengine->w, "stop\n");
 	if (is_mate(&posd))
 		return;
 	char fenstr[128];
-	if (engine_isready(analysisengine))
-		goto error;
-	if (fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd)) < 0)
-		goto error;
-	if (fprintf(analysisengine->w, "go infinite\n") < 0)
-		goto error;
+	engine_isready(analysisengine);
+	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd));
+	fprintf(analysisengine->w, "go infinite\n");
 	return;
-error:
-	end_analysis();
 }
 
 void start_analysis(struct uciengine *ue) {
@@ -498,7 +495,7 @@ void parse_analysis(const struct position *current) {
 			add_analysis(&a);
 	}
 	if (error) {
-		snprintf(line, 500, "error (%d): poorly formatted engine output: %s", error, engineerror);
+		snprintf(line, 500, "Error (%d): Poorly formatted engine output: %s", error, engineerror);
 		info("Engine Error", line, INFO_ERROR, 10, 80);
 		end_analysis();
 	}
@@ -507,7 +504,8 @@ void parse_analysis(const struct position *current) {
 void end_analysis(void) {
 	if (!analysisengine)
 		return;
-	engine_close(analysisengine);
+	if (engine_close(analysisengine))
+		info("Engine Error", "The analysis engine is unresponsive.", INFO_ERROR, 5, 42);
 	free(analysisengine);
 	analysisengine = NULL;
 }

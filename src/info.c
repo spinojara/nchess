@@ -54,7 +54,8 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 
 	free(buf);
 
-	wgetch(win);
+	int ch;
+	while ((ch = wgetch(win)) != '\n' && ch != 'q');
 
 	delwin(win);
 }

@@ -12,8 +12,8 @@
 /* timepoint_t is given in nanoseconds. */
 typedef long long timepoint_t;
 
-#define TPPERSEC 1000000000l
-#define TPPERMS     1000000l
+#define TPPERSEC 1000000000ll
+#define TPPERMS     1000000ll
 
 static inline timepoint_t time_now(void) {
 	struct timespec tp;

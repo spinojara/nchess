@@ -7,8 +7,11 @@
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
+#include <poll.h>
+#include <errno.h>
 
 #include "window.h"
+#include "timepoint.h"
 
 struct arg {
 	FILE *w;
@@ -23,22 +26,41 @@ void *engine_listen(void *arg) {
 	free(arg);
 
 	char line[8192];
-	while (fgets(line, sizeof(line), r)) {
-		if (!strncmp(line, "bestmove ", 9)) {
-			timepoint_t t = time_now();
-			pthread_mutex_lock(&ec->mutex);
-			ec->bestmovetime = t;
-			pthread_mutex_unlock(&ec->mutex);
+	int n;
+	struct pollfd fd = { .fd = fileno(r), .events = POLLIN };
+	while (!engine_error(ec) && (n = poll(&fd, 1, 250)) >= 0) {
+		if (n > 0) {
+			while (errno = 0, fgets(line, sizeof(line), r)) {
+				if (!strncmp(line, "bestmove ", 9)) {
+					timepoint_t t = time_now();
+					pthread_mutex_lock(&ec->mutex);
+					ec->bestmovetime = t;
+					pthread_mutex_unlock(&ec->mutex);
+				}
+				else if (!strcmp(line, "readyok\n")) {
+					pthread_mutex_lock(&ec->mutex);
+					ec->isready = 0;
+					ec->readyok = 1;
+					pthread_mutex_unlock(&ec->mutex);
+					continue;
+				}
+				pthread_mutex_lock(&ec->mutex);
+				if (!ec->isready)
+					fprintf(w, "%s", line);
+				pthread_mutex_unlock(&ec->mutex);
+			}
+			if (errno && errno != EWOULDBLOCK)
+				engine_seterror(ec);
 		}
-		else if (!strcmp(line, "readyok\n")) {
-			pthread_mutex_lock(&ec->mutex);
-			ec->readyok = 1;
-			pthread_mutex_unlock(&ec->mutex);
-		}
-		fprintf(w, "%s", line);
+		pthread_mutex_lock(&ec->mutex);
+		if (ec->isready && time_since(ec->isready) >= TPPERSEC * 2)
+			ec->error = 1;
+		pthread_mutex_unlock(&ec->mutex);
 	}
 	fclose(w);
 	fclose(r);
+
+	engine_seterror(ec);
 
 	return NULL;
 }
@@ -76,6 +98,8 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 	setbuf(ec->w, NULL);
 	int flags = fcntl(parentparent[0], F_GETFL, 0);
 	fcntl(parentparent[0], F_SETFL, flags | O_NONBLOCK);
+	flags = fcntl(childparent[0], F_GETFL, 0);
+	fcntl(childparent[0], F_SETFL, flags | O_NONBLOCK);
 	ec->error = ec->isready = ec->readyok = 0;
 
 	struct arg *arg = malloc(sizeof(*arg));
@@ -87,7 +111,9 @@ void engine_open(struct engineconnection *ec, struct uciengine *ue) {
 	pthread_create(&ec->tid, NULL, &engine_listen, arg);
 }
 
-void engine_close(struct engineconnection *ec) {
+int engine_close(struct engineconnection *ec) {
+	int error = engine_error(ec);
+
 	struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
 	fprintf(ec->w, "stop\nquit\n");
@@ -105,9 +131,11 @@ void engine_close(struct engineconnection *ec) {
 	kill(ec->pid, SIGKILL);
 	waitpid(ec->pid, NULL, 0);
 
-join:
+join:;
+	engine_seterror(ec);
 	pthread_join(ec->tid, NULL);
 	pthread_mutex_destroy(&ec->mutex);
+	return error;
 }
 
 int engine_readyok(struct engineconnection *ec) {
@@ -120,6 +148,20 @@ int engine_readyok(struct engineconnection *ec) {
 int engine_isready(struct engineconnection *ec) {
 	pthread_mutex_lock(&ec->mutex);
 	ec->readyok = 0;
+	ec->isready = time_now();
 	pthread_mutex_unlock(&ec->mutex);
 	return fprintf(ec->w, "isready\n") < 0;
+}
+
+void engine_seterror(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	ec->error = 1;
+	pthread_mutex_unlock(&ec->mutex);
+}
+
+int engine_error(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	int error = ec->error;
+	pthread_mutex_unlock(&ec->mutex);
+	return error;
 }

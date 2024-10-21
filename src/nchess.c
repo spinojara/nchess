@@ -1,5 +1,6 @@
 #include <locale.h>
 #include <time.h>
+#include <signal.h>
 
 #include <ncurses.h>
 
@@ -17,6 +18,7 @@
 int running = 1;
 
 int main(void) {
+	signal(SIGPIPE, SIG_IGN);
 	setlocale(LC_ALL, "");
 	initscr();
 	if (!has_colors()) {
