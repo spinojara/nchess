@@ -1026,13 +1026,16 @@ void mainwin_draw(void) {
 	mvwaddch(mainwin.win, 5 * 8 + 3, 87, ACS_LARROW);
 	mvwaddch(mainwin.win, 5 * 8 + 3, 88, ACS_LARROW);
 	mvwaddch(mainwin.win, 5 * 8 + 3, 92, ACS_LARROW);
-#if 0
-	mvwaddch(mainwin.win, 5 * 8 + 3, 92, ACS_VLINE);
-	mvwaddch(mainwin.win, 5 * 8 + 3, 93, ACS_VLINE);
-#endif
 	mvwaddch(mainwin.win, 5 * 8 + 3, 97, ACS_RARROW);
 	mvwaddch(mainwin.win, 5 * 8 + 3, 101, ACS_RARROW);
 	mvwaddch(mainwin.win, 5 * 8 + 3, 102, ACS_RARROW);
+
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 45, 31, 3, 9);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 45, 42, 3, 9);
+	set_color(mainwin.win, posd.turn == WHITE ? &cs.texthl : &cs.text);
+	mvwaddstr(mainwin.win, 46, 33, "White");
+	set_color(mainwin.win, posd.turn == BLACK ? &cs.texthl : &cs.text);
+	mvwaddstr(mainwin.win, 46, 44, "Black");
 
 	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped);
 	moves_draw();

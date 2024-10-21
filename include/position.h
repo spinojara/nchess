@@ -51,6 +51,10 @@ int square(const char *algebraic);
 
 int make_legal(struct position *pos);
 
+/* 0 = not mate
+ * 1 = stalemate
+ * 2 = checkmate
+ */
 int is_mate(const struct position *pos);
 
 #endif

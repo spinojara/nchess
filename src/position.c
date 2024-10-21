@@ -341,5 +341,15 @@ int make_legal(struct position *pos) {
 int is_mate(const struct position *pos) {
 	struct move moves[MOVES_MAX];
 	movegen(pos, moves, 0);
-	return is_null(moves);
+	if (!is_null(moves))
+		return 0;
+
+	struct position copy = *pos;
+	copy.turn = !copy.turn;
+
+	movegen(&copy, moves, 1);
+	for (int i = 0; !is_null(&moves[i]); i++)
+		if (copy.mailbox[moves[i].to].type == KING)
+			return 2;
+	return 1;
 }
