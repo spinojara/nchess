@@ -1,5 +1,7 @@
 #include "analysis.h"
 
+#include <string.h>
+
 #include "color.h"
 #include "draw.h"
 #include "window.h"
@@ -49,6 +51,7 @@ void analysis_event(chtype ch, MEVENT *event) {
 		refreshed = 1;
 		break;
 	case KEY_ESC:
+	case 'q':
 		place_top(&topbar);
 		selected = 0;
 		break;
@@ -86,9 +89,17 @@ void analysis_draw(void) {
 		set_color(analysis.win, &cs.text);
 		mvwaddstr(analysis.win, 2, 4, "No Engines Available");
 	}
+	char name[24];
 	for (int i = 0; i < nengines; i++) {
 		set_color(analysis.win, selected == i + 1 ? &cs.texthl : &cs.text);
-		mvwaddstr(analysis.win, 2 + i, 2, uciengines[i].name);
+		snprintf(name, 24, "%s", uciengines[i].name);
+		if (strlen(name) == 23) {
+			name[19] = '.';
+			name[20] = '.';
+			name[21] = '.';
+			name[22] = '\0';
+		}
+		mvwaddstr(analysis.win, 2 + i, 4, uciengines[i].name);
 	}
 
 	wrefresh(analysis.win);

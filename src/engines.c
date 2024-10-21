@@ -56,6 +56,7 @@ void engines_event(chtype ch, MEVENT *event) {
 		place_top(&editengine);
 		break;
 	case KEY_ESC:
+	case 'q':
 		place_top(&topbar);
 		break;
 	case 'k':
@@ -147,9 +148,17 @@ void engines_draw(void) {
 	draw_border(engines.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
 	set_color(engines.win, selected == 0 ? &cs.texthl : &cs.text);
 	mvwprintw(engines.win, 1, 7, "< New Engine >");
+	char name[24];
 	for (int i = 0; i < nengines; i++) {
 		set_color(engines.win, selected == 1 + i ? &cs.texthl : &cs.text);
-		mvwaddstr(engines.win, 2 + i, 2, uciengines[i].name);
+		snprintf(name, 24, "%s", uciengines[i].name);
+		if (strlen(name) == 23) {
+			name[19] = '.';
+			name[20] = '.';
+			name[21] = '.';
+			name[22] = '\0';
+		}
+		mvwaddstr(engines.win, 2 + i, 4, name);
 	}
 
 	wrefresh(engines.win);

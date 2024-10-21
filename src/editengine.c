@@ -114,10 +114,18 @@ void editengine_resize(void) {
 	editengine_draw();
 }
 
+int filtername(char c) {
+	return c < 0x20 || c > 0x7E || c == '*';
+}
+
+int filterpath(char c) {
+	return c < 0x20 || c > 0x7E;
+}
+
 void editengine_init(void) {
-	field_init(&field[0], editengine.win, 1, 8, 18, NULL);
-	field_init(&field[1], editengine.win, 2, 11, 15, NULL);
-	field_init(&field[2], editengine.win, 3, 15, 11, NULL);
+	field_init(&field[0], editengine.win, 1, 8, 18, &filtername);
+	field_init(&field[1], editengine.win, 2, 11, 15, &filterpath);
+	field_init(&field[2], editengine.win, 3, 15, 11, &filterpath);
 }
 
 void editengine_edit(struct uciengine *ue) {

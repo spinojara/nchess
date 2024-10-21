@@ -46,7 +46,7 @@ static int nmove = 0;
 static int fenselected = 0;
 static struct field fen;
 
-static int relativescore = 0;
+int relativescore = 0;
 
 static int sentdepth = 0;
 static int sentseldepth = 0;

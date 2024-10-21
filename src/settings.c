@@ -9,7 +9,7 @@ static int refreshed = 0;
 
 static int selected = 0;
 
-static const char *options[] = { "Flip Board", };
+static const char *options[] = { "Flip Board", "Relative Scores" };
 
 static int noptions = sizeof(options) / sizeof(*options);
 
@@ -36,12 +36,16 @@ void settings_event(chtype ch, MEVENT *event) {
 		switch (selected) {
 		case 0:
 			flipped = !flipped;
-			place_top(&mainwin);
-			refreshed = 1;
+			break;
+		case 1:
+			relativescore = !relativescore;
 			break;
 		}
+		place_top(&mainwin);
+		refreshed = 1;
 		break;
 	case KEY_ESC:
+	case 'q':
 		refreshed = 1;
 		place_top(&topbar);
 		break;
@@ -75,8 +79,11 @@ void settings_draw(void) {
 	draw_border(settings.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
 	set_color(settings.win, selected == 0 ? &cs.texthl : &cs.text);
 	for (int i = 0; i < noptions; i++) {
+		set_color(settings.win, &cs.text);
+		if ((i == 0 && flipped) || (i == 1 && relativescore))
+			mvwaddch(settings.win, 1 + i, 2, '*');
 		set_color(settings.win, selected == i ? &cs.texthl : &cs.text);
-		mvwprintw(settings.win, 1 + i, 2, "< %s >", options[i]);
+		mvwprintw(settings.win, 1 + i, 4, "< %s >", options[i]);
 	}
 
 	wrefresh(settings.win);
