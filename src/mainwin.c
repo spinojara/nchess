@@ -236,8 +236,8 @@ void reset_analysis(void) {
 	if (is_mate(&posd))
 		return;
 	char fenstr[128];
-	engine_isready(analysisengine);
 	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd));
+	engine_isready(analysisengine);
 	fprintf(analysisengine->w, "go infinite\n");
 	return;
 }
