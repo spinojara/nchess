@@ -116,7 +116,9 @@ void field_insert(struct field *field, char c) {
 	field_curinc(field);
 }
 
-char *field_buffer(struct field *field) {
+const char *field_buffer(struct field *field, int use_suggestion) {
+	if (use_suggestion && field->len == 0 && field->suggestion)
+		return field->suggestion;
 	field->str[field->len] = '\0';
 	return field->str;
 }
@@ -166,7 +168,7 @@ void field_clear(struct field *field) {
 	field->cur = 0;
 }
 
-void field_set(struct field *field, char *str) {
+void field_set(struct field *field, const char *str) {
 	field_clear(field);
 	int len = strlen(str);
 	for (int i = 0; i < len; i++)

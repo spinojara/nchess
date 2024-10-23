@@ -108,7 +108,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 		}
 		else if (ch == '\n') {
 			struct position new;
-			char *buf = field_buffer(&fen);
+			const char *buf = field_buffer(&fen, 0);
 			if (fen_is_ok(buf)) {
 				pos_from_fen(&new, buf);
 				set_position(&new);
@@ -242,8 +242,8 @@ void reset_analysis(void) {
 	fprintf(analysisengine->w, "stop\n");
 	if (is_mate(&posd))
 		return;
-	char fenstr[128];
-	fprintf(analysisengine->w, "position fen %s\n", pos_to_fen(fenstr, &posd));
+	char positionfen[8192];
+	fprintf(analysisengine->w, "%s\n", position_fen(positionfen, 1));
 	engine_isready(analysisengine);
 	fprintf(analysisengine->w, "go infinite\n");
 	return;
@@ -266,7 +266,7 @@ void add_analysis(struct uciinfo *a) {
 		npastinfo++;
 }
 
-void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start) {
+void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start, const struct timecontrol timecontrol[2]) {
 	if (gamerunning)
 		return;
 	gamerunning = 1;
@@ -281,7 +281,7 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 	else
 		whiteengine = NULL;
 
-	
+	/* Save history if start == &posd? */
 	nmove = 0;
 	posd = posa = *start;
 
@@ -622,6 +622,45 @@ void moves_draw(void) {
 			mvwprintw(mainwin.win, 1 + line, 85 + 13, "%s", vmove[current + 1].name);
 		}
 	}
+}
+
+/* size of line should be resonably big, 4096 should suffice. */
+char *position_fen(char *line, int displayed) {
+	struct position pos = displayed ? posd : posa;
+	int nmoves = displayed ? selectedmove + 1 : nmove;
+
+	if (pos.halfmove >= 100)
+		return NULL;
+	int move;
+	if (pos.halfmove == 0) {
+		move = -1;
+	}
+	else {
+		for (move = nmoves - 1; move >= 0; move--)
+			if (vmove[move].move.halfmove == 0)
+				break;
+
+		if (move < 0 && nmoves)
+			move = 0;
+	}
+
+
+	char fenstr[128];
+	if (move < 0) {
+		sprintf(line, "position fen %s", pos_to_fen(fenstr, &pos));
+	}
+	else {
+		for (int i = nmoves - 1; i >= move; i--)
+			undo_move(&pos, &vmove[i].move);
+		sprintf(line, "position fen %s moves", pos_to_fen(fenstr, &pos));
+		char movestr[8] = " ";
+		for (int i = move; i < nmoves; i++) {
+			move_algebraic(&movestr[1], &vmove[i].move);
+			strcat(line, movestr);
+		}
+	}
+
+	return line;
 }
 
 void fen_draw(WINDOW *win, struct position *pos) {

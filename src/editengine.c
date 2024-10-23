@@ -75,7 +75,7 @@ void editengine_save(void) {
 		return;
 	selected = 0;
 	refreshed = 1;
-	engines_add(edit, field_buffer(&field[0]), field_buffer(&field[1]), field_buffer(&field[2]));
+	engines_add(edit, field_buffer(&field[0], 0), field_buffer(&field[1], 0), field_buffer(&field[2], 0));
 	for (int i = 0; i < 3; i++)
 		field_clear(&field[i]);
 	place_top(&engines);

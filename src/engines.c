@@ -91,7 +91,7 @@ int enginecmp(const void *e1, const void *e2) {
 	return strcmp(((struct uciengine *)e1)->name, ((struct uciengine *)e2)->name);
 }
 
-void engines_add(struct uciengine *edit, char *name, char *command, char *workingdir) {
+void engines_add(struct uciengine *edit, const char *name, const char *command, const char *workingdir) {
 	if (!noconfig)
 		configchanged = 1;
 	char *namep = malloc(strlen(name) + 1);

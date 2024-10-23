@@ -13,7 +13,7 @@ void engines_event(chtype ch, MEVENT *event);
 
 void engines_resize(void);
 
-void engines_add(struct uciengine *edit, char *name, char *command, char *workingdir);
+void engines_add(struct uciengine *edit, const char *name, const char *command, const char *workingdir);
 
 void engines_remove(struct uciengine *edit);
 

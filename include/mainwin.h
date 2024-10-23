@@ -27,6 +27,8 @@ void set_position(struct position *pos);
 
 int fen_filter(char c);
 
-void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start);
+void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start, const struct timecontrol timecontrol[2]);
+
+char *position_fen(char *line, int displayed);
 
 #endif

@@ -1,6 +1,7 @@
 #include "newgame.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "window.h"
 #include "draw.h"
@@ -8,6 +9,7 @@
 #include "field.h"
 #include "enginepicker.h"
 #include "mainwin.h"
+#include "timepoint.h"
 
 static int refreshed = 0;
 
@@ -85,12 +87,24 @@ void newgame_event(chtype ch, MEVENT *event) {
 		case 2:
 			locktimecontrol = !locktimecontrol;
 			if (locktimecontrol)
-				field_set(&timecontrol[1], field_buffer(&timecontrol[0]));
+				field_set(&timecontrol[1], field_buffer(&timecontrol[0], 0));
 			refreshed = 0;
 			break;
 		case 5:
 			currentposition = !currentposition;
 			refreshed = 0;
+			break;
+		case 7:;
+			struct timecontrol tc[2];
+			refreshed = 0;
+			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1))) {
+				break;
+			}
+			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1))) {
+				break;
+			}
+			refreshed = 1;
+			place_top(&mainwin);
 			break;
 		}
 		break;
@@ -102,7 +116,7 @@ void newgame_event(chtype ch, MEVENT *event) {
 			int other = 1 - index;
 			field_driver(&timecontrol[index], ch, event);
 			if (locktimecontrol) {
-				field_set(&timecontrol[other], field_buffer(&timecontrol[index]));
+				field_set(&timecontrol[other], field_buffer(&timecontrol[index], 0));
 				timecontrol[other].cur = timecontrol[index].cur;
 				timecontrol[other].disp = timecontrol[index].disp;
 			}

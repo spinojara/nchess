@@ -323,6 +323,11 @@ void do_move(struct position *pos, struct move *move) {
 
 	move->captured = pos->mailbox[move->to];
 
+	pos->halfmove++;
+
+	if (pos->mailbox[move->to].type != EMPTY)
+		pos->halfmove = 0;
+
 	if (move->flag) {
 		/* Can clear both squares, because one of them will be empty anyway. */
 		pos->mailbox[pos->en_passant - 8].type = EMPTY;
@@ -330,6 +335,7 @@ void do_move(struct position *pos, struct move *move) {
 	}
 	pos->en_passant = 0;
 	if (pos->mailbox[move->from].type == PAWN) {
+		pos->halfmove = 0;
 		if (move->from + 16 == move->to)
 			pos->en_passant = move->from + 8;
 		if (move->from - 16 == move->to)

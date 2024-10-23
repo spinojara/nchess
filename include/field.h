@@ -27,11 +27,11 @@ void field_draw(struct field *field, attr_t attr, int draw_cursor, int blocket);
 
 void field_driver(struct field *field, chtype ch, MEVENT *event);
 
-char *field_buffer(struct field *field);
+const char *field_buffer(struct field *field, int use_suggestion);
 
 void field_clear(struct field *field);
 
-void field_set(struct field *field, char *str);
+void field_set(struct field *field, const char *str);
 
 void field_insert(struct field *field, char c);
 

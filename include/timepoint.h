@@ -26,4 +26,14 @@ static inline timepoint_t time_since(timepoint_t t) {
 	return time_now() - t;
 }
 
+struct timecontrol {
+	timepoint_t total;
+	timepoint_t inc;
+	long long moves;
+
+	int infinite;
+};
+
+struct timecontrol *timecontrol_string(struct timecontrol *timecontrol, const char *str);
+
 #endif

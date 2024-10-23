@@ -34,6 +34,8 @@ long perft(struct position *pos, int depth, int verbose);
 
 char *move_pgn(char *str, const struct position *pos, const struct move *move);
 
+char *move_algebraic(char *str, const struct move *m);
+
 int movecmp(const struct move *a, const struct move *b);
 
 struct move *string_to_move(struct move *move, struct position *pos, const char *str);
