@@ -4,8 +4,10 @@ INSTALL   = install
 
 CC        = cc
 CSTANDARD = -std=c99 -DPOSIX_C_SOURCE=200112L
-CWARNINGS = -Wall -Wextra -Wshadow -pedantic -Wvla
+CWARNINGS = -Wall -Wextra -Wshadow -pedantic -Wvla -Wno-format-truncation
 COPTIMIZE = -O2
+
+DEBUG = address
 
 ifeq ($(DEBUG), yes)
 	CDEBUG = -g3 -ggdb
@@ -23,7 +25,7 @@ LDFLAGS ::= $(CFLAGS) $(LDLIBS)
 
 SRC       = analysis.c board.c color.c draw.c editengine.c editwin.c \
 	    engine.c engines.c field.c info.c mainwin.c move.c nchess.c \
-	    position.c settings.c topbar.c window.c
+	    position.c settings.c topbar.c window.c newgame.c enginepicker.c
 
 OBJ       = $(patsubst %.c,obj/%.o,$(SRC))
 

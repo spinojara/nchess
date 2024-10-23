@@ -65,6 +65,9 @@ void topbar_event(chtype ch, MEVENT *event) {
 		/* fallthrough */
 	case '\n':
 		switch (selected) {
+		case 0:
+			place_top(&newgame);
+			break;
 		case 1:
 			place_top(&settings);
 			break;

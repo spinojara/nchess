@@ -92,9 +92,9 @@ void editengine_draw(void) {
 	int x, y;
 	getmaxyx(editengine.win, y, x);
 	draw_border(editengine.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
-	field_draw(&field[0], A_UNDERLINE, selected == 0);
-	field_draw(&field[1], A_UNDERLINE, selected == 1);
-	field_draw(&field[2], A_UNDERLINE, selected == 2);
+	field_draw(&field[0], A_UNDERLINE, selected == 0, 0);
+	field_draw(&field[1], A_UNDERLINE, selected == 1, 0);
+	field_draw(&field[2], A_UNDERLINE, selected == 2, 0);
 	set_color(editengine.win, &cs.text);
 	mvwaddstr(editengine.win, 1, 2, "Name:");
 	mvwaddstr(editengine.win, 2, 2, "Command:");
@@ -123,9 +123,9 @@ int filterpath(char c) {
 }
 
 void editengine_init(void) {
-	field_init(&field[0], editengine.win, 1, 8, 18, &filtername);
-	field_init(&field[1], editengine.win, 2, 11, 15, &filterpath);
-	field_init(&field[2], editengine.win, 3, 15, 11, &filterpath);
+	field_init(&field[0], editengine.win, 1, 8, 18, &filtername, "bitbit");
+	field_init(&field[1], editengine.win, 2, 11, 15, &filterpath, "bitbit");
+	field_init(&field[2], editengine.win, 3, 15, 11, &filterpath, NULL);
 }
 
 void editengine_edit(struct uciengine *ue) {

@@ -78,7 +78,11 @@ static struct {
 	int fullmove;
 } *vmove = NULL;
 
+static int gamerunning = 0;
+
 static struct engineconnection *analysisengine = NULL;
+static struct engineconnection *whiteengine = NULL;
+static struct engineconnection *blackengine = NULL;
 
 void mainwin_draw(void);
 void put_move(struct move *move, int at_end);
@@ -98,7 +102,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 
 	if (fenselected && ch != 0) {
 		refreshed = 0;
-		if (ch != '\n' && ch != 0) {
+		if (ch != '\n' && ch != 0 && ch != KEY_ESC) {
 			field_driver(&fen, ch, event);
 			goto draw;
 		}
@@ -110,6 +114,9 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				set_position(&new);
 				fenselected = 0;
 			}
+		}
+		else if (ch == KEY_ESC) {
+			fenselected = 0;
 		}
 	}
 
@@ -257,6 +264,28 @@ void add_analysis(struct uciinfo *a) {
 	pastinfo[0] = *a;
 	if (npastinfo < MAXPASTINFO)
 		npastinfo++;
+}
+
+void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start) {
+	if (gamerunning)
+		return;
+	gamerunning = 1;
+
+	if (black)
+		engine_open(blackengine, black);
+	else
+		blackengine = NULL;
+
+	if (white)
+		engine_open(whiteengine, white);
+	else
+		whiteengine = NULL;
+
+	
+	nmove = 0;
+	posd = posa = *start;
+
+	reset_analysis();
 }
 
 void parse_analysis(const struct position *current) {
@@ -534,11 +563,14 @@ void forward_full(void) {
 
 void put_move(struct move *move, int at_end) {
 	int save_history = 0;
+	struct position old;
 	if (!at_end) {
 		if (nmove > selectedmove + 1) {
 			/* Only delete history if we made a different move. */
-			if (!movecmp(move, &vmove[selectedmove + 1].move))
+			if (!movecmp(move, &vmove[selectedmove + 1].move)) {
 				save_history = nmove;
+				old = posa;
+			}
 			nmove = selectedmove + 1;
 			posa = posd;
 		}
@@ -561,8 +593,10 @@ void put_move(struct move *move, int at_end) {
 		do_move(&posd, move);
 	}
 
-	if (save_history)
+	if (save_history) {
 		nmove = save_history;
+		posa = old;
+	}
 }
 
 void moves_draw(void) {
@@ -1047,7 +1081,7 @@ void mainwin_draw(void) {
 	char fenstr[128];
 	if (!fenselected)
 		field_set(&fen, pos_to_fen(fenstr, &posd));
-	field_draw(&fen, fenselected ? A_UNDERLINE : 0, fenselected);
+	field_draw(&fen, fenselected ? A_UNDERLINE : 0, fenselected, 0);
 	analysis_draw();
 	wrefresh(mainwin.win);
 	refreshed = 1;
@@ -1062,7 +1096,7 @@ void mainwin_resize(void) {
 
 void mainwin_init(void) {
 	pos_from_fen(&posa, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-	field_init(&fen, mainwin.win, 43, 2, 78, &fen_filter);
+	field_init(&fen, mainwin.win, 43, 2, 78, &fen_filter, NULL);
 	posd = posa;
 }
 

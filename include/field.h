@@ -10,6 +10,7 @@ struct field {
 	int size;
 	/* Careful, str is not always null terminated. */
 	char *str;
+	char *suggestion;
 
 	int cur;
 	int disp;
@@ -20,9 +21,9 @@ struct field {
 	int y, x;
 };
 
-void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char));
+void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char), const char *suggestion);
 
-void field_draw(struct field *field, attr_t attr, int draw_cursor);
+void field_draw(struct field *field, attr_t attr, int draw_cursor, int blocket);
 
 void field_driver(struct field *field, chtype ch, MEVENT *event);
 

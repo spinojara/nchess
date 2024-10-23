@@ -18,7 +18,8 @@ typedef long long timepoint_t;
 static inline timepoint_t time_now(void) {
 	struct timespec tp;
 	clock_gettime(CLOCK, &tp);
-	return (timepoint_t)tp.tv_sec * TPPERSEC + (timepoint_t)tp.tv_nsec;
+	timepoint_t ret = (timepoint_t)tp.tv_sec * TPPERSEC + (timepoint_t)tp.tv_nsec;
+	return ret ? ret : 1;
 }
 
 static inline timepoint_t time_since(timepoint_t t) {

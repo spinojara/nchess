@@ -12,13 +12,15 @@
 #include "analysis.h"
 #include "editwin.h"
 #include "settings.h"
+#include "newgame.h"
+#include "enginepicker.h"
 
 #define MINLINES 56
 #define MINCOLS 117
 
-struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis;
+struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis, enginepicker;
 
-struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine, &analysis };
+struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine, &analysis, &enginepicker };
 
 const int nwins = sizeof(wins) / sizeof(*wins);
 
@@ -48,6 +50,7 @@ void window_init(void) {
 
 	newgame.win = newwin(0, 0, 0, 0);
 	keypad(newgame.win, TRUE);
+	newgame.event = &newgame_event;
 
 	settings.win = newwin(0, 0, 0, 0);
 	keypad(settings.win, TRUE);
@@ -64,6 +67,10 @@ void window_init(void) {
 	analysis.win = newwin(0, 0, 0, 0);
 	keypad(analysis.win, TRUE);
 	analysis.event = &analysis_event;
+
+	enginepicker.win = newwin(0, 0, 0, 0);
+	keypad(enginepicker.win, TRUE);
+	enginepicker.event = &enginepicker_event;
 }
 
 void window_resize(void) {
@@ -80,9 +87,8 @@ void window_resize(void) {
 	analysis_resize();
 	editwin_resize();
 	settings_resize();
-
-	wresize(newgame.win, LINES - 8, COLS - 10);
-	mvwin(newgame.win, 5, 4);
+	newgame_resize();
+	enginepicker_resize();
 
 	touchwin(stdscr);
 	wrefresh(stdscr);

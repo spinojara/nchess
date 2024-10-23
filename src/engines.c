@@ -65,6 +65,10 @@ void engines_event(chtype ch, MEVENT *event) {
 			refreshed = 0;
 			selected--;
 		}
+		else {
+			refreshed = 1;
+			place_top(&topbar);
+		}
 		break;
 	case '\t':
 		selected = (selected + 1) % (1 + nengines);

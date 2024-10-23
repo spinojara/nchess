@@ -5,7 +5,7 @@
 
 #include "color.h"
 
-void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char)) {
+void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char), const char *suggestion) {
 	field->screenlen = screenlen;
 	field->filter = filter;
 
@@ -17,6 +17,14 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 	field->y = y;
 	field->x = x;
 
+	if (suggestion) {
+		field->suggestion = malloc(strlen(suggestion) + 1);
+		strcpy(field->suggestion, suggestion);
+	}
+	else {
+		field->suggestion = NULL;
+	}
+
 	field->cur = field->disp = 0;
 	field->len = 0;
 	field->size = 32;
@@ -24,10 +32,22 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 }
 
 /* Draw the \n and \t characters as a red 'n' and 't' respectively. */
-void field_draw(struct field *field, attr_t attr, int draw_cursor) {
+void field_draw(struct field *field, attr_t attr, int draw_cursor, int blocked) {
 	for (int j = 0; j < field->screenlen; j++) {
-		char c = field->disp + j < field->len ? field->str[field->disp + j] : ' ';
-		wattrset(field->win, (draw_cursor && field->disp + j == field->cur ? cs.texthl.attr : cs.text.attr) | attr);
+		chtype c;
+		if (field->len == 0 && field->suggestion && j < (int)strlen(field->suggestion))
+			c = field->suggestion[j];
+		else if (field->disp + j < field->len)
+			c = field->str[field->disp + j];
+		else
+			c = ' ';
+
+		wattrset(field->win, (draw_cursor && field->disp + j == field->cur ? cs.texthl.attr : field->len ? cs.text.attr : cs.textdim.attr) | attr);
+
+		if (blocked) {
+			c = ACS_HLINE | A_UNDERLINE;
+			set_color(field->win, &cs.textdim);
+		}
 
 		switch (c) {
 		case '\0':

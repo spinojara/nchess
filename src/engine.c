@@ -35,12 +35,13 @@ void *engine_listen(void *arg) {
 					timepoint_t t = time_now();
 					pthread_mutex_lock(&ec->mutex);
 					ec->bestmovetime = t;
+					snprintf(ec->bestmove, 128, "%s", line);
 					pthread_mutex_unlock(&ec->mutex);
 				}
 				else if (!strcmp(line, "readyok\n")) {
 					pthread_mutex_lock(&ec->mutex);
 					ec->isready = 0;
-					ec->readyok = 1;
+					ec->readyok = time_now();
 					pthread_mutex_unlock(&ec->mutex);
 					continue;
 				}
@@ -65,7 +66,7 @@ void *engine_listen(void *arg) {
 	return NULL;
 }
 
-void engine_open(struct engineconnection *ec, struct uciengine *ue) {
+void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	int parentchild[2];
 	int childparent[2];
 	int parentparent[2];

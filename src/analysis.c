@@ -61,6 +61,10 @@ void analysis_event(chtype ch, MEVENT *event) {
 			refreshed = 0;
 			selected--;
 		}
+		else {
+			refreshed = 1;
+			place_top(&topbar);
+		}
 		break;
 	case '\t':
 		selected = (selected + 1) % (nengines + 1);
@@ -99,7 +103,7 @@ void analysis_draw(void) {
 			name[21] = '.';
 			name[22] = '\0';
 		}
-		mvwaddstr(analysis.win, 2 + i, 4, uciengines[i].name);
+		mvwaddstr(analysis.win, 2 + i, 4, name);
 	}
 
 	wrefresh(analysis.win);

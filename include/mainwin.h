@@ -25,4 +25,8 @@ void fen_draw(WINDOW *win, struct position *pos);
 
 void set_position(struct position *pos);
 
+int fen_filter(char c);
+
+void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start);
+
 #endif

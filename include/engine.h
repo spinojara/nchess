@@ -42,11 +42,12 @@ struct engineconnection {
 	int readyok;
 	int error;
 
+	char bestmove[128];
 	timepoint_t bestmovetime;
 	pthread_mutex_t mutex;
 };
 
-void engine_open(struct engineconnection *ec, struct uciengine *ue);
+void engine_open(struct engineconnection *ec, const struct uciengine *ue);
 
 int engine_close(struct engineconnection *ec);
 

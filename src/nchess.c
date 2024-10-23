@@ -14,6 +14,7 @@
 #include "editengine.h"
 #include "info.h"
 #include "editwin.h"
+#include "newgame.h"
 
 int running = 1;
 
@@ -37,6 +38,7 @@ int main(void) {
 
 	window_init();
 	mainwin_init();
+	newgame_init();
 	window_resize();
 	editengine_init();
 
