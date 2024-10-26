@@ -297,8 +297,7 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 	tc[0].offset = tc[1].offset = time_now();
 
 	/* Save history if start == &posd? */
-	nmove = 0;
-	posd = posa = *start;
+	set_position(start);
 
 	reset_analysis();
 }
@@ -325,16 +324,22 @@ void update_game(void) {
 	if (!gamerunning)
 		return;
 
-	/* Check for end of game here. */
-
 	struct engineconnection *ec;
+
+	/* Check for end of game here. */
+	if (posa.halfmove >= 100 || is_mate(&posa) || ((ec = whiteengine) && engine_error(ec)) || ((ec = blackengine) && engine_error(ec))) {
+		end_game();
+		info("Game Over", "Someone maybe won", INFO_MESSAGE, 3, 26);
+		return;
+	}
+
 	if ((posa.turn == WHITE && (ec = whiteengine) && !engine_awaiting(ec)) || (posa.turn == BLACK && (ec = blackengine) && !engine_awaiting(ec))) {
 		engine_isready(ec);
 		char fenstr[8192];
 		fprintf(ec->w, "%s\n", position_fen(fenstr, 0));
 		fprintf(ec->w, "go wtime %lld winc %lld btime %lld binc %lld\n", tc[WHITE].total / TPPERMS, tc[WHITE].inc / TPPERMS, tc[BLACK].total / TPPERMS, tc[BLACK].inc / TPPERMS);
 	}
-	else if ((posa.turn == WHITE && (ec = whiteengine) && engine_hasbestmove(ec)) || (posa.turn == BLACK && (ec = blackengine) && engine_hasbestmove(ec))) {
+	else if ((posa.turn == WHITE && (ec = whiteengine) && engine_readyok(ec) && engine_hasbestmove(ec)) || (posa.turn == BLACK && (ec = blackengine) && engine_readyok(ec) && engine_hasbestmove(ec))) {
 		char bestmove[128] = { 0 };
 		pthread_mutex_lock(&ec->mutex);
 		memcpy(bestmove, &ec->bestmove[9], 128 - 9);
@@ -1228,7 +1233,7 @@ void mainwin_init(void) {
 	posd = posa;
 }
 
-void set_position(struct position *pos) {
+void set_position(const struct position *pos) {
 	posd = posa = *pos;
 	nmove = 0;
 	selectedmove = -1;

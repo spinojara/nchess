@@ -23,7 +23,7 @@ void end_analysis(void);
 
 void fen_draw(WINDOW *win, struct position *pos);
 
-void set_position(struct position *pos);
+void set_position(const struct position *pos);
 
 int fen_filter(char c);
 

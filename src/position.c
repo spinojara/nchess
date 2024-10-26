@@ -112,9 +112,10 @@ int square(const char *algebraic) {
 	return f && r ? f - file + 8 * (r - rank) : -1;
 }
 
-void pos_from_fen(struct position *pos, const char *fen) {
+struct position *pos_from_fen(struct position *pos, const char *fen) {
 	int sq = A8;
 	const char *c;
+	memset(pos->mailbox, 0, 64 * sizeof(*pos->mailbox));
 	for (c = fen; *c != ' '; c++) {
 		switch (*c) {
 		case 'p':
@@ -181,7 +182,7 @@ void pos_from_fen(struct position *pos, const char *fen) {
 	c = strchr(c + 1, ' ');
 	if (c == NULL) {
 		make_legal(pos);
-		return;
+		return pos;
 	}
 
 	char *endptr;
@@ -193,6 +194,8 @@ void pos_from_fen(struct position *pos, const char *fen) {
 	pos->fullmove = strtod(c, &endptr);
 
 	make_legal(pos);
+
+	return pos;
 }
 
 int en_passant_needed(const struct position *pos) {

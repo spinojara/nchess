@@ -101,20 +101,31 @@ void newgame_event(chtype ch, MEVENT *event) {
 				break;
 			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1)))
 				break;
-			if (!fen_is_ok(field_buffer(&fen, 1)))
+			if (!currentposition && !fen_is_ok(field_buffer(&fen, 1)))
 				break;
 			if ((tc[WHITE].infinite && whiteplayer) || (tc[BLACK].infinite && blackplayer))
 				break;
 			refreshed = 1;
 			struct position pos;
-			pos_from_fen(&pos, field_buffer(&fen, 1));
-			start_game(blackplayer, whiteplayer, &pos, tc);
+			start_game(blackplayer, whiteplayer, currentposition ? &posd : pos_from_fen(&pos, field_buffer(&fen, 1)), tc);
 			place_top(&mainwin);
 			break;
 		}
 		break;
 	default:
 		switch (selected) {
+		case 0:
+			if (ch == KEY_RIGHT) {
+				selected = 1;
+				refreshed = 0;
+			}
+			break;
+		case 1:
+			if (ch == KEY_LEFT) {
+				selected = 0;
+				refreshed = 0;
+			}
+			break;
 		case 3:
 		case 4:;
 			int index = selected - 3;

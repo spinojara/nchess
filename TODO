@@ -1,5 +1,7 @@
 - Board editor en passant.
-- Add button for rotating board.
-- Halfmove.
 - Add checks for read and write to engines.
 - Add checks for error variable in parse_analysis. Maybe a popup window.
+- Threefold repetitions.
+- If you first select an engine under e.g. New Game, and then exit and add a
+  new engine, it will maybe be selected under New Game because this is purely
+  done by index, not by name or something.
