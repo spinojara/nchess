@@ -27,6 +27,8 @@ static inline timepoint_t time_since(timepoint_t t) {
 }
 
 struct timecontrol {
+	timepoint_t offset;
+
 	timepoint_t total;
 	timepoint_t inc;
 	long long moves;
@@ -35,5 +37,7 @@ struct timecontrol {
 };
 
 struct timecontrol *timecontrol_string(struct timecontrol *timecontrol, const char *str);
+
+char *timepoint_str(char *str, int n, timepoint_t t);
 
 #endif

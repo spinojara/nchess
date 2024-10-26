@@ -101,7 +101,7 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	fcntl(parentparent[0], F_SETFL, flags | O_NONBLOCK);
 	flags = fcntl(childparent[0], F_GETFL, 0);
 	fcntl(childparent[0], F_SETFL, flags | O_NONBLOCK);
-	ec->error = ec->isready = ec->readyok = 0;
+	ec->error = ec->isready = ec->readyok = ec->bestmovetime = 0;
 
 	struct arg *arg = malloc(sizeof(*arg));
 	arg->w = fdopen(parentparent[1], "w");
@@ -139,9 +139,9 @@ join:;
 	return error;
 }
 
-int engine_readyok(struct engineconnection *ec) {
+timepoint_t engine_readyok(struct engineconnection *ec) {
 	pthread_mutex_lock(&ec->mutex);
-	int readyok = ec->readyok;
+	timepoint_t readyok = ec->readyok;
 	pthread_mutex_unlock(&ec->mutex);
 	return readyok;
 }
@@ -149,9 +149,31 @@ int engine_readyok(struct engineconnection *ec) {
 int engine_isready(struct engineconnection *ec) {
 	pthread_mutex_lock(&ec->mutex);
 	ec->readyok = 0;
+	ec->bestmovetime = 0;
 	ec->isready = time_now();
 	pthread_mutex_unlock(&ec->mutex);
 	return fprintf(ec->w, "isready\n") < 0;
+}
+
+int engine_hasbestmove(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	int ret = ec->bestmovetime != 0;
+	pthread_mutex_unlock(&ec->mutex);
+
+	return ret;
+}
+
+int engine_awaiting(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	int ret = ec->isready || ec->readyok;
+	pthread_mutex_unlock(&ec->mutex);
+	return ret;
+}
+
+void engine_reset(struct engineconnection *ec) {
+	pthread_mutex_lock(&ec->mutex);
+	ec->readyok = ec->isready = 0;
+	pthread_mutex_unlock(&ec->mutex);
 }
 
 void engine_seterror(struct engineconnection *ec) {

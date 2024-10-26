@@ -29,6 +29,8 @@ int fen_filter(char c);
 
 void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start, const struct timecontrol timecontrol[2]);
 
+void end_game(void);
+
 char *position_fen(char *line, int displayed);
 
 #endif

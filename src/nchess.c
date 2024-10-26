@@ -89,5 +89,6 @@ int main(void) {
 
 	endwin();
 	end_analysis();
+	end_game();
 	engines_writeconfig();
 }

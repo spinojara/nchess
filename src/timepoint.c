@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) {
 	tc->total = 0;
@@ -34,15 +35,15 @@ struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) 
 
 	switch (*endptr) {
 	case '\0':
-		tc->total = d * 1000;
+		tc->total = d * TPPERSEC;
 		return tc;
 	case '+':
 		next = 1;
-		tc->total = d * 1000;
+		tc->total = d * TPPERSEC;
 		break;
 	case ':':
 		next = 0;
-		tc->total = d * 60 * 1000;
+		tc->total = d * 60 * TPPERSEC;
 		break;
 	default:
 		return NULL;
@@ -58,15 +59,15 @@ struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) 
 	switch (*endptr) {
 	case '\0':
 		if (next)
-			tc->inc = d * 1000;
+			tc->inc = d * TPPERSEC;
 		else
-			tc->total += d * 1000;
+			tc->total += d * TPPERSEC;
 		return tc;
 	case '+':
 		if (next)
 			return NULL;
 		else
-			tc->total += d * 1000;
+			tc->total += d * TPPERSEC;
 		break;
 	default:
 		return NULL;
@@ -81,9 +82,26 @@ struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) 
 	
 	switch (*endptr) {
 	case '\0':
-		tc->inc = d * 1000;
+		tc->inc = d * TPPERSEC;
 		return tc;
 	default:
 		return NULL;
 	}
+}
+
+char *timepoint_str(char *str, int n, timepoint_t t) {
+	if (t < 0)
+		t = 0;
+	timepoint_t minutes = t / (TPPERSEC * 60);
+	timepoint_t seconds = (t - TPPERSEC * 60 * minutes) / TPPERSEC;
+	timepoint_t milliseconds = (t - TPPERSEC * (seconds + 60 * minutes)) / (100 * TPPERMS);
+
+	if (minutes)
+		snprintf(str, n, "%lld:%02lld", minutes, seconds);
+	else if (seconds < 10)
+		snprintf(str, n, "%lld.%lld", seconds, milliseconds);
+	else
+		snprintf(str, n, "%lld", seconds);
+
+	return str;
 }

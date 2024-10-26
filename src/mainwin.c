@@ -81,6 +81,7 @@ static struct {
 static int gamerunning = 0;
 
 static struct engineconnection *analysisengine = NULL;
+struct timecontrol tc[2] = { 0 };
 static struct engineconnection *whiteengine = NULL;
 static struct engineconnection *blackengine = NULL;
 
@@ -92,8 +93,11 @@ int forward_move(void);
 void forward_full(void);
 int prompt_promotion(int square);
 void reset_analysis(void);
+void update_game(void);
 
 void mainwin_event(chtype ch, MEVENT *event) {
+	update_game();
+
 	if (analysisengine && engine_error(analysisengine))
 		end_analysis();
 
@@ -271,21 +275,83 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 		return;
 	gamerunning = 1;
 
-	if (black)
+	if (black) {
+		blackengine = malloc(sizeof(*blackengine));
 		engine_open(blackengine, black);
-	else
+	}
+	else {
 		blackengine = NULL;
+	}
 
-	if (white)
+	if (white) {
+		whiteengine = malloc(sizeof(*whiteengine));
 		engine_open(whiteengine, white);
-	else
+	}
+	else {
 		whiteengine = NULL;
+	}
+
+	tc[0] = timecontrol[0];
+	tc[1] = timecontrol[1];
+
+	tc[0].offset = tc[1].offset = time_now();
 
 	/* Save history if start == &posd? */
 	nmove = 0;
 	posd = posa = *start;
 
 	reset_analysis();
+}
+
+void end_game(void) {
+	if (!gamerunning)
+		return;
+	gamerunning = 0;
+
+	if (whiteengine) {
+		engine_close(whiteengine);
+		free(whiteengine);
+		whiteengine = NULL;
+	}
+
+	if (blackengine) {
+		engine_close(blackengine);
+		free(blackengine);
+		blackengine = NULL;
+	}
+}
+
+void update_game(void) {
+	if (!gamerunning)
+		return;
+
+	/* Check for end of game here. */
+
+	struct engineconnection *ec;
+	if ((posa.turn == WHITE && (ec = whiteengine) && !engine_awaiting(ec)) || (posa.turn == BLACK && (ec = blackengine) && !engine_awaiting(ec))) {
+		engine_isready(ec);
+		char fenstr[8192];
+		fprintf(ec->w, "%s\n", position_fen(fenstr, 0));
+		fprintf(ec->w, "go wtime %lld winc %lld btime %lld binc %lld\n", tc[WHITE].total / TPPERMS, tc[WHITE].inc / TPPERMS, tc[BLACK].total / TPPERMS, tc[BLACK].inc / TPPERMS);
+	}
+	else if ((posa.turn == WHITE && (ec = whiteengine) && engine_hasbestmove(ec)) || (posa.turn == BLACK && (ec = blackengine) && engine_hasbestmove(ec))) {
+		char bestmove[128] = { 0 };
+		pthread_mutex_lock(&ec->mutex);
+		memcpy(bestmove, &ec->bestmove[9], 128 - 9);
+		pthread_mutex_unlock(&ec->mutex);
+		engine_reset(ec);
+		char *c;
+		if ((c = strchr(bestmove, ' ')))
+			*c = '\0';
+
+		struct move move;
+		if (string_to_move(&move, &posa, bestmove)) {
+			put_move(&move, 1);
+			refreshed = 0;
+		}
+		else {
+		}
+	}
 }
 
 void parse_analysis(const struct position *current) {
@@ -1079,6 +1145,28 @@ static void analysis_draw(void) {
 	}
 }
 
+void game_draw(void) {
+	if (!gamerunning)
+		return;
+
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 0, 3, 29);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 53, 3, 29);
+
+	set_color(mainwin.win, &cs.text);
+	char tcstr[26];
+	if (!tc[WHITE].infinite)
+		timepoint_str(tcstr, 26, tc[WHITE].total - (posa.turn == WHITE ? time_since(tc[WHITE].offset) : 0));
+	else
+		sprintf(tcstr, "oo");
+	mvwaddstr(mainwin.win, 46, 27 - strlen(tcstr), tcstr);
+
+	if (!tc[BLACK].infinite)
+		timepoint_str(tcstr, 26, tc[BLACK].total - (posa.turn == BLACK ? time_since(tc[BLACK].offset) : 0));
+	else
+		sprintf(tcstr, "oo");
+	mvwaddstr(mainwin.win, 46, 55, tcstr);
+}
+
 int exclude(int y, int x) {
 	int xmax = 0;
 	if (COLS >= 127)
@@ -1122,6 +1210,7 @@ void mainwin_draw(void) {
 		field_set(&fen, pos_to_fen(fenstr, &posd));
 	field_draw(&fen, fenselected ? A_UNDERLINE : 0, fenselected, 0);
 	analysis_draw();
+	game_draw();
 	wrefresh(mainwin.win);
 	refreshed = 1;
 }

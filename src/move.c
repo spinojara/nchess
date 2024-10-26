@@ -552,7 +552,7 @@ char *move_algebraic(char *str, const struct move *m) {
 	algebraic(str + 2, m->to);
 
 	if (m->promotion) {
-		str[4] = "??NBRQ"[m->promotion];
+		str[4] = "??nbrq"[m->promotion];
 		str[5] = '\0';
 	}
 

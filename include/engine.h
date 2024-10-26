@@ -39,7 +39,7 @@ struct engineconnection {
 	FILE *w, *r;
 
 	timepoint_t isready;
-	int readyok;
+	timepoint_t readyok;
 	int error;
 
 	char bestmove[128];
@@ -51,9 +51,15 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue);
 
 int engine_close(struct engineconnection *ec);
 
-int engine_readyok(struct engineconnection *ec);
+timepoint_t engine_readyok(struct engineconnection *ec);
 
 int engine_isready(struct engineconnection *ec);
+
+int engine_hasbestmove(struct engineconnection *ec);
+
+int engine_awaiting(struct engineconnection *ec);
+
+void engine_reset(struct engineconnection *ec);
 
 void engine_seterror(struct engineconnection *ec);
 

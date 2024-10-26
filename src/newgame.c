@@ -97,13 +97,18 @@ void newgame_event(chtype ch, MEVENT *event) {
 		case 7:;
 			struct timecontrol tc[2];
 			refreshed = 0;
-			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1))) {
+			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1)))
 				break;
-			}
-			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1))) {
+			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1)))
 				break;
-			}
+			if (!fen_is_ok(field_buffer(&fen, 1)))
+				break;
+			if ((tc[WHITE].infinite && whiteplayer) || (tc[BLACK].infinite && blackplayer))
+				break;
 			refreshed = 1;
+			struct position pos;
+			pos_from_fen(&pos, field_buffer(&fen, 1));
+			start_game(blackplayer, whiteplayer, &pos, tc);
 			place_top(&mainwin);
 			break;
 		}
