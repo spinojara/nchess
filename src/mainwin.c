@@ -16,6 +16,8 @@
 
 #define MAXPASTINFO 17
 #define MAXINFOPV   32
+#define MOVESMAXLINES 40
+
 struct uciinfo {
 	long long depth;
 	long long seldepth;
@@ -40,6 +42,7 @@ struct position posd;
 static struct position posa;
 
 static int smove = 0;
+static int shownmove = 0;
 static int selectedmove = -1;
 static int nmove = 0;
 
@@ -87,13 +90,14 @@ static struct engineconnection *blackengine = NULL;
 
 void mainwin_draw(void);
 void put_move(struct move *move, int at_end);
-int backward_move(void);
-void backward_full(void);
-int forward_move(void);
-void forward_full(void);
+int backward_move(int dontreset);
+void backward_full(int dontreset);
+int forward_move(int dontreset);
+void forward_full(int dontreset);
 int prompt_promotion(int square);
 void reset_analysis(void);
 void update_game(void);
+int is_threefold(int displayed);
 
 void mainwin_event(chtype ch, MEVENT *event) {
 	update_game();
@@ -129,13 +133,11 @@ void mainwin_event(chtype ch, MEVENT *event) {
 		refreshed = 0;
 		break;
 	case 'u':
-		backward_move();
-		reset_analysis();
+		backward_move(0);
 		refreshed = 0;
 		break;
 	case 'f':
-		forward_move();
-		reset_analysis();
+		forward_move(0);
 		refreshed = 0;
 		break;
 	case 'q':
@@ -158,35 +160,34 @@ void mainwin_event(chtype ch, MEVENT *event) {
 			}
 			/* Forward and backward. */
 			else if (event->y == 5 * 8 + 3 && 86 <= event->x && event->x <= 89) {
-				backward_full();
-				reset_analysis();
+				backward_full(0);
 				refreshed = 0;
 			}
 			else if (event->y == 5 * 8 + 3 && 91 <= event->x && event->x <= 93) {
-				backward_move();
-				reset_analysis();
+				backward_move(0);
 				refreshed = 0;
 			}
 			else if (event->y == 5 * 8 + 3 && 96 <= event->x && event->x <= 98) {
-				forward_move();
-				reset_analysis();
+				forward_move(0);
 				refreshed = 0;
 			}
 			else if (event->y == 5 * 8 + 3 && 100 <= event->x && event->x <= 103) {
-				forward_full();
-				reset_analysis();
+				forward_full(0);
 				refreshed = 0;
 			}
 			else if (1 <= event->y && event->y <= 40 && 90 <= event->x && event->x != 97 && event->x <= 105 && nmove > 0) {
 				int line = event->y - 1;
 				int index = event->x > 96;
-				int moveindex = 2 * line + index - (vmove[0].color == BLACK);
+				int offset = vmove[0].color == BLACK;
+				int moveindex = 2 * line + index + shownmove - offset;
+				int oldshownmove = shownmove;
 				if (0 <= moveindex && moveindex < nmove) {
-					backward_full();
+					backward_full(1);
 					for (int i = 0; i < moveindex + 1; i++)
-						forward_move();
+						forward_move(1);
 					reset_analysis();
 				}
+				shownmove = oldshownmove;
 				refreshed = 0;
 			}
 			else if (event->y == 43 && 2 <= event->x && event->x < 2 + 78) {
@@ -208,10 +209,8 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				movegen(&posd, moves, 0);
 				for (int i = 0; !is_null(&moves[i]); i++) {
 					if (moves[i].to == move.to && moves[i].from == move.from) {
-						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to))) {
+						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to)))
 							put_move(&moves[i], 0);
-							reset_analysis();
-						}
 						break;
 					}
 				}
@@ -226,6 +225,8 @@ draw:
 	if (!refreshed)
 		mainwin_draw();
 }
+
+int is_over(int displayed);
 
 void reset_analysis(void) {
 	if (!analysisengine)
@@ -244,7 +245,7 @@ void reset_analysis(void) {
 	sentcurrmovenumber = 0;
 	npastinfo = 0;
 	fprintf(analysisengine->w, "stop\n");
-	if (is_mate(&posd))
+	if (is_over(1))
 		return;
 	char positionfen[8192];
 	fprintf(analysisengine->w, "%s\n", position_fen(positionfen, 1));
@@ -298,8 +299,6 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 
 	/* Save history if start == &posd? */
 	set_position(start);
-
-	reset_analysis();
 }
 
 void end_game(void) {
@@ -320,16 +319,87 @@ void end_game(void) {
 	}
 }
 
+int poscmp(const struct position *pos1, const struct position *pos2) {
+	for (int sq = 0; sq < 64; sq++) {
+		if (pos1->mailbox[sq].type != pos2->mailbox[sq].type)
+			return 1;
+		else if (pos1->mailbox[sq].type != EMPTY && pos1->mailbox[sq].color != pos2->mailbox[sq].color)
+			return 1;
+	}
+
+	if (pos1->turn != pos2->turn)
+		return 1;
+	if (pos1->K != pos2->K)
+		return 1;
+	if (pos1->Q != pos2->Q)
+		return 1;
+	if (pos1->k != pos2->k)
+		return 1;
+	if (pos1->q != pos2->q)
+		return 1;
+
+	return 0;
+}
+
+int is_threefold(int displayed) {
+	struct position pos = posa;
+	for (int i = nmove - 1; i >= 0; i--)
+		undo_move(&pos, &vmove[i].move);
+
+	int nmoves = displayed ? selectedmove + 1 : nmove;
+
+	/* Should care about the en passant square, but only
+	 * if its actually possible to capture en passant. */
+	for (int i = 0; i < nmoves - 7; i++) {
+		int count = 1;
+		struct position rep = pos;
+		for (int j = i; j < nmoves && rep.halfmove == pos.halfmove + j - i; j++) {
+			do_move(&rep, &vmove[j].move);
+
+			if (j < i + 3 || (j - i) % 2 == 0)
+				continue;
+
+			if (!poscmp(&pos, &rep) && ++count == 3)
+				return 1;
+		}
+
+		do_move(&pos, &vmove[i].move);
+	}
+
+	return 0;
+}
+
+int is_over(int displayed) {
+	struct position pos = displayed ? posd : posa;
+	int r;
+	if (pos.halfmove >= 100)
+		return STATUS_HALFMOVE;
+	else if ((r = is_mate(&pos)))
+		return r;
+	else if ((is_threefold(displayed)))
+		return STATUS_THREEFOLD;
+	else if (!displayed && ((pos.turn == WHITE && whiteengine && engine_error(whiteengine) == EE_ILLEGALMOVE) ||
+				(pos.turn == BLACK && blackengine && engine_error(blackengine) == EE_ILLEGALMOVE)))
+		return STATUS_ILLEGALMOVE;
+	else if (!displayed && ((pos.turn == WHITE && whiteengine && engine_error(whiteengine)) ||
+				(pos.turn == BLACK && blackengine && engine_error(blackengine))))
+		return STATUS_DISCONNECT;
+
+	return STATUS_NOTOVER;
+}
+
 void update_game(void) {
 	if (!gamerunning)
 		return;
 
 	struct engineconnection *ec;
 
-	/* Check for end of game here. */
-	if (posa.halfmove >= 100 || is_mate(&posa) || ((ec = whiteengine) && engine_error(ec)) || ((ec = blackengine) && engine_error(ec))) {
+	int r;
+	if ((r = is_over(0))) {
 		end_game();
-		info("Game Over", "Someone maybe won", INFO_MESSAGE, 3, 26);
+		char msg[128];
+		sprintf(msg, "Someone maybe won (%d)", r);
+		info("Game Over", msg, INFO_MESSAGE, 5, 26);
 		return;
 	}
 
@@ -346,7 +416,7 @@ void update_game(void) {
 		pthread_mutex_unlock(&ec->mutex);
 		engine_reset(ec);
 		char *c;
-		if ((c = strchr(bestmove, ' ')))
+		if ((c = strchr(bestmove, ' ')) || (c = strchr(bestmove, '\n')))
 			*c = '\0';
 
 		struct move move;
@@ -355,6 +425,10 @@ void update_game(void) {
 			refreshed = 0;
 		}
 		else {
+			char fenstr[128];
+			end_game();
+			die("illegal move: %s: '%s'\n", pos_to_fen(fenstr, &posa), bestmove);
+			engine_seterror(ec, EE_ILLEGALMOVE);
 		}
 	}
 }
@@ -366,7 +440,7 @@ void parse_analysis(const struct position *current) {
 	char line[4096], *token = NULL, *endptr;
 	int error = 0;
 	char engineerror[4096] = { 0 };
-	while (engine_readyok(analysisengine) && fgets(line, sizeof(line), analysisengine->r) && !error) {
+	while (errno = 0, engine_readyok(analysisengine) && fgets(line, sizeof(line), analysisengine->r) && !error) {
 		struct uciinfo a = { 0 };
 		if ((token = strchr(line, '\n')))
 			*token = '\0';
@@ -599,6 +673,8 @@ void parse_analysis(const struct position *current) {
 		info("Engine Error", line, INFO_ERROR, 10, 80);
 		end_analysis();
 	}
+	else if (errno != WNOHANG) {
+	}
 }
 
 void end_analysis(void) {
@@ -610,26 +686,44 @@ void end_analysis(void) {
 	analysisengine = NULL;
 }
 
-int backward_move(void) {
+int backward_move(int dontreset) {
 	if (selectedmove == -1)
 		return 1;
 	undo_move(&posd, &vmove[selectedmove--].move);
+	if (!dontreset)
+		reset_analysis();
+	int offset = vmove[0].color == BLACK;
+	if (selectedmove < shownmove - offset && shownmove >= 2)
+		shownmove -= 2;
 	return 0;
 }
 
-int forward_move(void) {
+int forward_move(int dontreset) {
 	if (selectedmove > nmove - 2)
 		return 1;
 	do_move(&posd, &vmove[++selectedmove].move);
+	if (!dontreset)
+		reset_analysis();
+	int offset = vmove[0].color == BLACK;
+	if (selectedmove >= 2 * MOVESMAXLINES + shownmove - offset)
+		shownmove += 2;
 	return 0;
 }
 
-void backward_full(void) {
-	while (!backward_move());
+void backward_full(int dontreset) {
+	int n = 0;
+	while (!backward_move(1))
+		n++;
+	if (n && !dontreset)
+		reset_analysis();
 }
 
-void forward_full(void) {
-	while (!forward_move());
+void forward_full(int dontreset) {
+	int n = 0;
+	while (!forward_move(1))
+		n++;
+	if (n && !dontreset)
+		reset_analysis();
 }
 
 void put_move(struct move *move, int at_end) {
@@ -659,10 +753,8 @@ void put_move(struct move *move, int at_end) {
 
 	nmove++;
 
-	if (nmove == selectedmove + 2) {
-		selectedmove++;
-		do_move(&posd, move);
-	}
+	if (nmove == selectedmove + 2)
+		forward_move(0);
 
 	if (save_history) {
 		nmove = save_history;
@@ -671,14 +763,15 @@ void put_move(struct move *move, int at_end) {
 }
 
 void moves_draw(void) {
-	if (smove == 0)
+	if (nmove == 0)
 		return;
 	set_color(mainwin.win, &cs.text);
 	int offset = vmove[0].color == BLACK;
-	int current = -offset;
-	for (int line = 0; line < 40; line++, current += 2) {
+	int current = shownmove - offset;
+	for (int line = 0; line < MOVESMAXLINES; line++, current += 2) {
 		set_color(mainwin.win, &cs.text);
-		mvwprintw(mainwin.win, 1 + line, 85, "                  ");
+		for (int i = 0; i < 20; i++)
+			mvwaddch(mainwin.win, 1 + line, 85 + i, ' ');
 		if (current == -1 && nmove > 0) {
 			mvwprintw(mainwin.win, 1 + line, 85, "%3d. ...", vmove[0].fullmove <= 999 ? vmove[0].fullmove : 999);
 		}
@@ -686,12 +779,13 @@ void moves_draw(void) {
 			set_color(mainwin.win, &cs.text);
 			mvwprintw(mainwin.win, 1 + line, 85, "%3d.", vmove[current].fullmove <= 999 ? vmove[current].fullmove : 999);
 			set_color(mainwin.win, current == selectedmove ? &cs.texthl : &cs.text);
-			mvwprintw(mainwin.win, 1 + line, 85 + 5, "%s", vmove[current].name);
+			mvwaddstr(mainwin.win, 1 + line, 85 + 5, vmove[current].name);
 		}
 		if (current + 1 < nmove) {
 			set_color(mainwin.win, current + 1 == selectedmove ? &cs.texthl : &cs.text);
-			mvwprintw(mainwin.win, 1 + line, 85 + 13, "%s", vmove[current + 1].name);
+			mvwaddstr(mainwin.win, 1 + line, 85 + 13, vmove[current + 1].name);
 		}
+		wrefresh(mainwin.win);
 	}
 }
 
@@ -700,8 +794,12 @@ char *position_fen(char *line, int displayed) {
 	struct position pos = displayed ? posd : posa;
 	int nmoves = displayed ? selectedmove + 1 : nmove;
 
-	if (pos.halfmove >= 100)
-		return NULL;
+	char fenstr[128];
+	if (pos.halfmove >= 100) {
+		pos.halfmove = 0;
+		sprintf(line, "position fen %s", pos_to_fen(fenstr, &pos));
+		return line;
+	}
 	int move;
 	if (pos.halfmove == 0) {
 		move = -1;
@@ -715,8 +813,6 @@ char *position_fen(char *line, int displayed) {
 			move = 0;
 	}
 
-
-	char fenstr[128];
 	if (move < 0) {
 		sprintf(line, "position fen %s", pos_to_fen(fenstr, &pos));
 	}
@@ -1116,34 +1212,41 @@ static void analysis_draw(void) {
 		}
 		mvwaddstr(mainwin.win, 3, 138, currmovestr);
 	}
-	for (int i = 0; i < npastinfo; i++) {
+	for (int i = 0; i < MAXPASTINFO; i++) {
 		if (COLS >= 127) {
 			mvwhline(mainwin.win, 8 + 2 * i, 109, ' ', 7);
-			mvwaddstr(mainwin.win, 8 + 2 * i, 109, depthstrs[i]);
+			if (i < npastinfo)
+				mvwaddstr(mainwin.win, 8 + 2 * i, 109, depthstrs[i]);
 		}
 		if (COLS >= 134) {
 			mvwhline(mainwin.win, 8 + 2 * i, 117, ' ', 6);
-			mvwaddstr(mainwin.win, 8 + 2 * i, 117, timestrs[i]);
+			if (i < npastinfo)
+				mvwaddstr(mainwin.win, 8 + 2 * i, 117, timestrs[i]);
 		}
 		if (COLS >= 141) {
 			mvwhline(mainwin.win, 8 + 2 * i, 124, ' ', 6);
-			mvwaddstr(mainwin.win, 8 + 2 * i, 124, scorestrs[i]);
-			if (pastinfo[i].lowerbound || pastinfo[i].upperbound)
-				mvwaddch(mainwin.win, 8 + 2 * i, 124, pastinfo[i].lowerbound ? ACS_GEQUAL : ACS_LEQUAL);
+			if (i < npastinfo) {
+				mvwaddstr(mainwin.win, 8 + 2 * i, 124, scorestrs[i]);
+				if (pastinfo[i].lowerbound || pastinfo[i].upperbound)
+					mvwaddch(mainwin.win, 8 + 2 * i, 124, pastinfo[i].lowerbound ? ACS_GEQUAL : ACS_LEQUAL);
+			}
 		}
 		if (COLS >= 148) {
 			mvwhline(mainwin.win, 8 + 2 * i, 131, ' ', 6);
-			mvwaddstr(mainwin.win, 8 + 2 * i, 131, nodesstrs[i]);
+			if (i < npastinfo)
+				mvwaddstr(mainwin.win, 8 + 2 * i, 131, nodesstrs[i]);
 		}
 		if (COLS >= 157) {
 			mvwhline(mainwin.win, 8 + 2 * i, 138, ' ', COLS - 149);
-			if ((int)strlen(pvstrs[i]) >= COLS - 149) {
-				pvstrs[i][COLS - 152] = '.';
-				pvstrs[i][COLS - 151] = '.';
-				pvstrs[i][COLS - 150] = '.';
-				pvstrs[i][COLS - 149] = '\0';
+			if (i < npastinfo) {
+				if ((int)strlen(pvstrs[i]) >= COLS - 149) {
+					pvstrs[i][COLS - 152] = '.';
+					pvstrs[i][COLS - 151] = '.';
+					pvstrs[i][COLS - 150] = '.';
+					pvstrs[i][COLS - 149] = '\0';
+				}
+				mvwaddstr(mainwin.win, 8 + 2 * i, 138, pvstrs[i]);
 			}
-			mvwaddstr(mainwin.win, 8 + 2 * i, 138, pvstrs[i]);
 		}
 		/* Have to refresh here for otherwise the terminal flickers... */
 		wrefresh(mainwin.win);
@@ -1173,22 +1276,27 @@ void game_draw(void) {
 }
 
 int exclude(int y, int x) {
-	int xmax = 0;
-	if (COLS >= 127)
-		xmax = 116;
-	if (COLS >= 134)
-		xmax = 123;
-	if (COLS >= 141)
-		xmax = 130;
-	if (COLS >= 148)
-		xmax = 137;
-	if (COLS >= 157)
-		xmax = COLS - 11;
-	return 8 <= y && y <= 41 && 109 <= x && x <= xmax;
+	if (analysisengine) {
+		int xmax = 0;
+		if (COLS >= 127)
+			xmax = 116;
+		if (COLS >= 134)
+			xmax = 123;
+		if (COLS >= 141)
+			xmax = 130;
+		if (COLS >= 148)
+			xmax = 137;
+		if (COLS >= 157)
+			xmax = COLS - 11;
+		if (8 <= y && y <= 41 && 109 <= x && x <= xmax)
+			return 1;
+	}
+
+	return nmove && 1 <= y && y <= 40 && 85 <= x && x <= 84 + 20;
 }
 
 void mainwin_draw(void) {
-	draw_fill(mainwin.win, &cs.border, 0, 0, LINES, COLS, analysisengine ? &exclude : 0);
+	draw_fill(mainwin.win, &cs.border, 0, 0, LINES, COLS, &exclude);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 0, 5 * 8 + 2, 10 * 8 + 2);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 5 * 8 + 2, 0, 3, 82);
 	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 0, 0, 83, 42, 24);
@@ -1209,13 +1317,15 @@ void mainwin_draw(void) {
 	mvwaddstr(mainwin.win, 46, 44, "Black");
 
 	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped);
-	moves_draw();
 	char fenstr[128];
 	if (!fenselected)
 		field_set(&fen, pos_to_fen(fenstr, &posd));
 	field_draw(&fen, fenselected ? A_UNDERLINE : 0, fenselected, 0);
-	analysis_draw();
 	game_draw();
+
+	/* Should be done at the end because of refreshes. */
+	analysis_draw();
+	moves_draw();
 	wrefresh(mainwin.win);
 	refreshed = 1;
 }
@@ -1237,6 +1347,7 @@ void set_position(const struct position *pos) {
 	posd = posa = *pos;
 	nmove = 0;
 	selectedmove = -1;
+	shownmove = 0;
 	reset_analysis();
 }
 

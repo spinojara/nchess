@@ -39,9 +39,10 @@ void *engine_listen(void *arg) {
 					pthread_mutex_unlock(&ec->mutex);
 				}
 				else if (!strcmp(line, "readyok\n")) {
+					timepoint_t t = time_now();
 					pthread_mutex_lock(&ec->mutex);
 					ec->isready = 0;
-					ec->readyok = time_now();
+					ec->readyok = t;
 					pthread_mutex_unlock(&ec->mutex);
 					continue;
 				}
@@ -51,17 +52,18 @@ void *engine_listen(void *arg) {
 				pthread_mutex_unlock(&ec->mutex);
 			}
 			if (errno && errno != EWOULDBLOCK)
-				engine_seterror(ec);
+				engine_seterror(ec, EE_CRASHED);
 		}
 		pthread_mutex_lock(&ec->mutex);
 		if (ec->isready && time_since(ec->isready) >= TPPERSEC * 2)
-			ec->error = 1;
+			ec->error = EE_READYOK;
 		pthread_mutex_unlock(&ec->mutex);
 	}
 	fclose(w);
 	fclose(r);
 
-	engine_seterror(ec);
+	if (!engine_error(ec))
+		engine_seterror(ec, EE_TERMINATED);
 
 	return NULL;
 }
@@ -97,16 +99,21 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	ec->r = fdopen(parentparent[0], "r");
 	ec->w = fdopen(parentchild[1], "w");
 	setbuf(ec->w, NULL);
-	int flags = fcntl(parentparent[0], F_GETFL, 0);
-	fcntl(parentparent[0], F_SETFL, flags | O_NONBLOCK);
-	flags = fcntl(childparent[0], F_GETFL, 0);
-	fcntl(childparent[0], F_SETFL, flags | O_NONBLOCK);
-	ec->error = ec->isready = ec->readyok = ec->bestmovetime = 0;
-
 	struct arg *arg = malloc(sizeof(*arg));
 	arg->w = fdopen(parentparent[1], "w");
 	arg->r = fdopen(childparent[0], "r");
 	arg->ec = ec;
+	int flags;
+	flags = fcntl(parentparent[0], F_GETFL, 0);
+	fcntl(parentparent[0], F_SETFL, flags | O_NONBLOCK);
+	flags = fcntl(childparent[0], F_GETFL, 0);
+	fcntl(childparent[0], F_SETFL, flags | O_NONBLOCK);
+
+	flags = fcntl(parentparent[1], F_GETFL, 0);
+	fcntl(parentparent[1], F_SETFL, flags | O_NONBLOCK);
+
+	ec->error = ec->isready = ec->readyok = ec->bestmovetime = 0;
+
 	setbuf(arg->w, NULL);
 	pthread_mutex_init(&ec->mutex, 0);
 	pthread_create(&ec->tid, NULL, &engine_listen, arg);
@@ -133,7 +140,8 @@ int engine_close(struct engineconnection *ec) {
 	waitpid(ec->pid, NULL, 0);
 
 join:;
-	engine_seterror(ec);
+	if (!engine_error(ec))
+		engine_seterror(ec, EE_TERMINATED);
 	pthread_join(ec->tid, NULL);
 	pthread_mutex_destroy(&ec->mutex);
 	return error;
@@ -176,9 +184,9 @@ void engine_reset(struct engineconnection *ec) {
 	pthread_mutex_unlock(&ec->mutex);
 }
 
-void engine_seterror(struct engineconnection *ec) {
+void engine_seterror(struct engineconnection *ec, int err) {
 	pthread_mutex_lock(&ec->mutex);
-	ec->error = 1;
+	ec->error = err;
 	pthread_mutex_unlock(&ec->mutex);
 }
 

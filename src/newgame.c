@@ -36,6 +36,17 @@ void newgame_event(chtype ch, MEVENT *event) {
 		refreshed = 1;
 		break;
 	case 'k':
+		if (selected == 6) {
+			field_driver(&fen, ch, NULL);
+			refreshed = 0;
+		}
+		else if (selected > 0) {
+			selected--;
+			refreshed = 0;
+		}
+		if (selected == 6 && currentposition)
+			selected = 5;
+		break;
 	case KEY_UP:
 		if (selected > 0) {
 			selected--;

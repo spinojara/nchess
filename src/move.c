@@ -463,6 +463,8 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 	int piece = pos->mailbox[move->from].type;
 	switch (piece) {
 	case PAWN:
+		/* Need this to not use uninitialized value later. */
+		str[0] = '?';
 		break;
 	case KNIGHT:
 		str[i++] = 'N';

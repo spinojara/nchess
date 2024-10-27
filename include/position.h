@@ -9,6 +9,16 @@ enum {
 	EMPTY, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
 };
 
+enum {
+	STATUS_NOTOVER,
+	STATUS_CHECKMATE,
+	STATUS_STALEMATE,
+	STATUS_HALFMOVE,
+	STATUS_THREEFOLD,
+	STATUS_ILLEGALMOVE,
+	STATUS_DISCONNECT,
+};
+
 struct piece {
 	int type;
 	int color;
@@ -51,10 +61,6 @@ int square(const char *algebraic);
 
 int make_legal(struct position *pos);
 
-/* 0 = not mate
- * 1 = stalemate
- * 2 = checkmate
- */
 int is_mate(const struct position *pos);
 
 #endif
