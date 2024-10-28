@@ -30,6 +30,62 @@ void newgame_event(chtype ch, MEVENT *event) {
 	case 0:
 		refreshed = 0;
 		break;
+	case KEY_MOUSE:
+		if (event->y == 3 && 2 <= event->x && event->x < 17) {
+			selected = 0;
+			enginepicker_setup(&whiteplayer);
+			place_top(&enginepicker);
+			refreshed = 1;
+		}
+		else if (event->y == 3 && 19 <= event->x && event->x < 34) {
+			selected = 1;
+			enginepicker_setup(&blackplayer);
+			place_top(&enginepicker);
+			refreshed = 1;
+		}
+		else if (event->y == 6 && 14 <= event->x && event->x < 14 + 8) {
+			selected = 2;
+			locktimecontrol = !locktimecontrol;
+			refreshed = 0;
+		}
+		else if (event->y == 7 && 2 <= event->x && event->x < 17) {
+			selected = 3;
+			field_driver(&timecontrol[0], ch, event);
+			refreshed = 0;
+		}
+		else if (event->y == 7 && 19 <= event->x && event->x < 34) {
+			selected = 4;
+			field_driver(&timecontrol[1], ch, event);
+			refreshed = 0;
+		}
+		else if (event->y == 10 && 8 <= event->x && event->x < 28) {
+			selected = 5;
+			currentposition = !currentposition;
+			refreshed = 0;
+		}
+		else if (event->y == 11 && 2 <= event->x && event->x < 34 && !currentposition) {
+			selected = 6;
+			field_driver(&fen, ch, event);
+			refreshed = 0;
+		}
+		else if (event->y == 13 && 11 <= event->x && event->x < 25) {
+			selected = 7;
+			refreshed = 0;
+			struct timecontrol tc[2];
+			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1)))
+				break;
+			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1)))
+				break;
+			if (!currentposition && !fen_is_ok(field_buffer(&fen, 1)))
+				break;
+			if ((tc[WHITE].infinite && whiteplayer) || (tc[BLACK].infinite && blackplayer))
+				break;
+			refreshed = 1;
+			struct position pos;
+			start_game(blackplayer, whiteplayer, currentposition ? &posd : pos_from_fen(&pos, field_buffer(&fen, 1)), tc);
+			place_top(&mainwin);
+		}
+		break;
 	case 'q':
 	case KEY_ESC:
 		place_top(&topbar);

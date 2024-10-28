@@ -10,6 +10,7 @@ extern struct position posd;
 
 extern int flipped;
 extern int relativescore;
+extern int gamerunning;
 
 void mainwin_event(chtype ch, MEVENT *event);
 

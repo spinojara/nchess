@@ -75,6 +75,8 @@ void topbar_event(chtype ch, MEVENT *event) {
 			place_top(&engines);
 			break;
 		case 3:
+			if (gamerunning)
+				break;
 			/* Only reset the edited position if mainwin is above editwin. */
 			for (int j = 0; j < nwins; j++) {
 				if (wins[j] == &mainwin) {

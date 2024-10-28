@@ -81,7 +81,7 @@ static struct {
 	int fullmove;
 } *vmove = NULL;
 
-static int gamerunning = 0;
+int gamerunning = 0;
 
 static struct engineconnection *analysisengine = NULL;
 struct timecontrol tc[2] = { 0 };
@@ -108,7 +108,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	if (ch != KEY_MOUSE && ch != 0)
 		selectedsquare = -1;
 
-	if (fenselected && ch != 0) {
+	if (fenselected && ch != 0 && !gamerunning) {
 		refreshed = 0;
 		if (ch != '\n' && ch != 0 && ch != KEY_ESC) {
 			field_driver(&fen, ch, event);
@@ -150,7 +150,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	case KEY_MOUSE:
 		if (event->bstate & BUTTON1_PRESSED) {
 			/* Board. */
-			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41) {
+			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && (!gamerunning || (selectedmove == nmove - 1 && ((posa.turn == WHITE && !whiteengine) || (posa.turn == BLACK && !blackengine))))) {
 				int new = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
 				if (flipped)
 					new = 63 - new;
@@ -190,14 +190,14 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				shownmove = oldshownmove;
 				refreshed = 0;
 			}
-			else if (event->y == 43 && 2 <= event->x && event->x < 2 + 78) {
+			else if (event->y == 43 && 2 <= event->x && event->x < 2 + 78 && !gamerunning) {
 				fenselected = 1;
 				field_driver(&fen, ch, event);
 				refreshed = 0;
 			}
 		}
 		if (event->bstate & BUTTON1_RELEASED) {
-			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1) {
+			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1 && (!gamerunning || (selectedmove == nmove - 1 && ((posa.turn == WHITE && !whiteengine) || (posa.turn == BLACK && !blackengine))))) {
 				struct move move;
 				int to = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
 				if (flipped)
@@ -1348,6 +1348,8 @@ void set_position(const struct position *pos) {
 	nmove = 0;
 	selectedmove = -1;
 	shownmove = 0;
+	fenselected = 0;
+	selectedsquare = -1;
 	reset_analysis();
 }
 

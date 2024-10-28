@@ -33,6 +33,9 @@ struct timecontrol {
 	timepoint_t inc;
 	long long moves;
 
+	long long movestogo;
+	timepoint_t totaltogo;
+
 	int infinite;
 };
 
