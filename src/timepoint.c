@@ -43,6 +43,10 @@ struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) 
 		break;
 	case ':':
 		next = 0;
+		/* Only accept integer minutes. */
+		for (int i = 0; str[i] != ':'; i++)
+			if (str[i] < '0' || str[i] > '9')
+				return NULL;
 		tc->total = d * 60 * TPPERSEC;
 		break;
 	default:
@@ -53,21 +57,27 @@ struct timecontrol *timecontrol_string(struct timecontrol *tc, const char *str) 
 
 	errno = 0;
 	d = strtod(str, &endptr);
-	if (errno || d <= 0)
+	if (errno || d < 0)
 		return NULL;
 
 	switch (*endptr) {
 	case '\0':
 		if (next)
 			tc->inc = d * TPPERSEC;
-		else
+		else {
+			if (strlen(str) != 2 || d >= 60 || str[0] < '0' || str[0] > '9' || str[1] < '0' || str[1] > '9')
+				return NULL;
 			tc->total += d * TPPERSEC;
+		}
 		return tc;
 	case '+':
 		if (next)
 			return NULL;
-		else
+		else {
+			if (strchr(str, '+') - str != 2 || d >= 60 || str[0] < '0' || str[0] > '9' || str[1] < '0' || str[1] > '9')
+				return NULL;
 			tc->total += d * TPPERSEC;
+		}
 		break;
 	default:
 		return NULL;

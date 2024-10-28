@@ -24,7 +24,8 @@ int next_word(char *word, const char *text, int *i) {
 }
 
 void info(const char *title, const char *message, int type, int lines, int cols) {
-	WINDOW *win = newwin(lines, cols, (LINES - lines) / 3, (COLS - cols) / 2);
+	WINDOW *win = newwin(lines, cols, 26 - lines / 2, 45 - cols / 2);
+	keypad(win, TRUE);
 
 	draw_border(win, NULL, &cs.border, &cs.bordershadow, 1, 0, 0, lines, cols);
 
@@ -55,7 +56,9 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 	free(buf);
 
 	int ch;
-	while ((ch = wgetch(win)) != '\n' && ch != 'q');
+	MEVENT event;
+	if ((ch = wgetch(win)) != '\n' && ch != 'q')
+		while (wgetch(win) == KEY_MOUSE && getmouse(&event) == OK && (event.bstate & BUTTON1_RELEASED));
 
 	delwin(win);
 }

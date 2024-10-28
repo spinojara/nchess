@@ -323,7 +323,8 @@ void do_move(struct position *pos, struct move *move) {
 
 	move->captured = pos->mailbox[move->to];
 
-	pos->halfmove++;
+	if (pos->halfmove < 100)
+		pos->halfmove++;
 
 	if (pos->mailbox[move->to].type != EMPTY)
 		pos->halfmove = 0;

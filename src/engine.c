@@ -69,6 +69,8 @@ void *engine_listen(void *arg) {
 }
 
 void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
+	memset(ec->name, 0, 17);
+	snprintf(ec->name, 17, "%s", ue->name);
 	int parentchild[2];
 	int childparent[2];
 	int parentparent[2];

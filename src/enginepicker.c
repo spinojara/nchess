@@ -53,6 +53,7 @@ void enginepicker_event(chtype ch, MEVENT *event) {
 	case KEY_ESC:
 	case 'q':
 		place_top(&newgame);
+		refreshed = 1;
 		selected = 0;
 		break;
 	case 'k':
@@ -60,10 +61,6 @@ void enginepicker_event(chtype ch, MEVENT *event) {
 		if (0 < selected) {
 			refreshed = 0;
 			selected--;
-		}
-		else {
-			refreshed = 1;
-			place_top(&topbar);
 		}
 		break;
 	case '\t':

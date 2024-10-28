@@ -85,6 +85,7 @@ int gamerunning = 0;
 
 static struct engineconnection *analysisengine = NULL;
 struct timecontrol tc[2] = { 0 };
+static int sentwhite = 0, sentblack = 0;
 static struct engineconnection *whiteengine = NULL;
 static struct engineconnection *blackengine = NULL;
 
@@ -98,6 +99,7 @@ int prompt_promotion(int square);
 void reset_analysis(void);
 void update_game(void);
 int is_threefold(int displayed);
+int subtract_timecontrol(struct timecontrol *timecontrol, timepoint_t start, timepoint_t end);
 
 void mainwin_event(chtype ch, MEVENT *event) {
 	update_game();
@@ -150,7 +152,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 	case KEY_MOUSE:
 		if (event->bstate & BUTTON1_PRESSED) {
 			/* Board. */
-			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && (!gamerunning || (selectedmove == nmove - 1 && ((posa.turn == WHITE && !whiteengine) || (posa.turn == BLACK && !blackengine))))) {
+			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && (!gamerunning || (selectedmove == nmove - 1 && ((sentwhite && !whiteengine) || (sentblack && !blackengine))))) {
 				int new = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
 				if (flipped)
 					new = 63 - new;
@@ -197,7 +199,7 @@ void mainwin_event(chtype ch, MEVENT *event) {
 			}
 		}
 		if (event->bstate & BUTTON1_RELEASED) {
-			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1 && (!gamerunning || (selectedmove == nmove - 1 && ((posa.turn == WHITE && !whiteengine) || (posa.turn == BLACK && !blackengine))))) {
+			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1 && (!gamerunning || (selectedmove == nmove - 1 && ((sentwhite && !whiteengine) || (sentblack && !blackengine))))) {
 				struct move move;
 				int to = (event->x - 1) / 10 + 8 * (7 - (event->y - 1) / 5);
 				if (flipped)
@@ -209,8 +211,14 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				movegen(&posd, moves, 0);
 				for (int i = 0; !is_null(&moves[i]); i++) {
 					if (moves[i].to == move.to && moves[i].from == move.from) {
-						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to)))
+						if (!moves[i].promotion || (moves[i].promotion = prompt_promotion(move.to))) {
+							if (gamerunning) {
+								struct timecontrol *timecontrol = &tc[posa.turn];
+								if (!timecontrol->infinite)
+									subtract_timecontrol(timecontrol, timecontrol->offset, time_now());
+							}
 							put_move(&moves[i], 0);
+						}
 						break;
 					}
 				}
@@ -229,8 +237,6 @@ draw:
 int is_over(int displayed);
 
 void reset_analysis(void) {
-	if (!analysisengine)
-		return;
 	sentdepth = 0;
 	sentseldepth = 0;
 	senttime = 0;
@@ -244,6 +250,8 @@ void reset_analysis(void) {
 	sentcurrmove = 0;
 	sentcurrmovenumber = 0;
 	npastinfo = 0;
+	if (!analysisengine)
+		return;
 	fprintf(analysisengine->w, "stop\n");
 	if (is_over(1))
 		return;
@@ -273,7 +281,7 @@ void add_analysis(struct uciinfo *a) {
 
 void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start, const struct timecontrol timecontrol[2]) {
 	if (gamerunning)
-		return;
+		end_game();
 	gamerunning = 1;
 
 	if (black) {
@@ -294,17 +302,20 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 
 	tc[0] = timecontrol[0];
 	tc[1] = timecontrol[1];
-
-	tc[0].offset = tc[1].offset = time_now();
+	tc[0].movestogo = tc[0].totaltogo = 0;
+	tc[1].movestogo = tc[1].totaltogo = 0;
 
 	/* Save history if start == &posd? */
 	set_position(start);
+
+	sentwhite = sentblack = 0;
 }
 
 void end_game(void) {
 	if (!gamerunning)
 		return;
 	gamerunning = 0;
+	selectedsquare = -1;
 
 	if (whiteengine) {
 		engine_close(whiteengine);
@@ -388,31 +399,79 @@ int is_over(int displayed) {
 	return STATUS_NOTOVER;
 }
 
+int subtract_timecontrol(struct timecontrol *timecontrol, timepoint_t start, timepoint_t end) {
+	timecontrol->totaltogo -= end - start;
+	return timecontrol->totaltogo <= 0;
+}
+
 void update_game(void) {
 	if (!gamerunning)
 		return;
 
 	struct engineconnection *ec;
 
+	char result[128] = { 0 };
 	int r;
-	if ((r = is_over(0))) {
+	if ((r = is_over(0)) != STATUS_NOTOVER) {
 		end_game();
-		char msg[128];
-		sprintf(msg, "Someone maybe won (%d)", r);
-		info("Game Over", msg, INFO_MESSAGE, 5, 26);
+		switch (r) {
+		case STATUS_STALEMATE:
+			sprintf(result, "Stalemate.");
+			break;
+		case STATUS_THREEFOLD:
+			sprintf(result, "Draw by repetition.");
+			break;
+		case STATUS_HALFMOVE:
+			sprintf(result, "Draw by fifty-move rule.");
+			break;
+		case STATUS_ILLEGALMOVE:
+			sprintf(result, "%s loses by illegal move.", posa.turn == WHITE ? "White" : "Black");
+			break;
+		case STATUS_CHECKMATE:
+			sprintf(result, "%s wins by checkmate.", posa.turn == BLACK ? "White" : "Black");
+			break;
+		case STATUS_DISCONNECT:
+			sprintf(result, "%s loses by disconnection.", posa.turn == WHITE ? "White" : "Black");
+			break;
+		}
+		info("Game Over", result, INFO_MESSAGE, 5, 36);
 		return;
 	}
 
-	if ((posa.turn == WHITE && (ec = whiteengine) && !engine_awaiting(ec)) || (posa.turn == BLACK && (ec = blackengine) && !engine_awaiting(ec))) {
-		engine_isready(ec);
-		char fenstr[8192];
-		fprintf(ec->w, "%s\n", position_fen(fenstr, 0));
-		fprintf(ec->w, "go wtime %lld winc %lld btime %lld binc %lld\n", tc[WHITE].total / TPPERMS, tc[WHITE].inc / TPPERMS, tc[BLACK].total / TPPERMS, tc[BLACK].inc / TPPERMS);
+	if ((posa.turn == WHITE && !sentwhite) || (posa.turn == BLACK && !sentblack)) {
+		sentwhite = posa.turn == WHITE;
+		sentblack = posa.turn == BLACK;
+
+		struct timecontrol *timecontrol = &tc[posa.turn];
+		timecontrol->offset = time_now();
+
+		timecontrol->totaltogo += timecontrol->inc;
+
+		if (timecontrol->movestogo == 0) {
+			timecontrol->movestogo = timecontrol->moves ? timecontrol->moves : -1;
+			timecontrol->totaltogo += timecontrol->total;
+		}
+
+		if ((posa.turn == WHITE && (ec = whiteengine)) || (posa.turn == BLACK && (ec = blackengine))) {
+			fprintf(ec->w, "stop\n");
+			engine_isready(ec);
+			char fenstr[8192];
+			fprintf(ec->w, "%s\n", position_fen(fenstr, 0));
+			if (timecontrol->movestogo <= 0)
+				fprintf(ec->w, "go wtime %lld winc %lld btime %lld binc %lld\n", tc[WHITE].totaltogo / TPPERMS, tc[WHITE].inc / TPPERMS, tc[BLACK].totaltogo / TPPERMS, tc[BLACK].inc / TPPERMS);
+			else
+				fprintf(ec->w, "go movestogo %lld wtime %lld winc %lld btime %lld binc %lld\n", timecontrol->movestogo, tc[WHITE].totaltogo / TPPERMS, tc[WHITE].inc / TPPERMS, tc[BLACK].totaltogo / TPPERMS, tc[BLACK].inc / TPPERMS);
+		}
+
+		if (timecontrol->movestogo > 0)
+			timecontrol->movestogo--;
 	}
 	else if ((posa.turn == WHITE && (ec = whiteengine) && engine_readyok(ec) && engine_hasbestmove(ec)) || (posa.turn == BLACK && (ec = blackengine) && engine_readyok(ec) && engine_hasbestmove(ec))) {
 		char bestmove[128] = { 0 };
 		pthread_mutex_lock(&ec->mutex);
 		memcpy(bestmove, &ec->bestmove[9], 128 - 9);
+		timepoint_t bestmovetime = ec->bestmovetime;
+		timepoint_t start = ec->readyok;
 		pthread_mutex_unlock(&ec->mutex);
 		engine_reset(ec);
 		char *c;
@@ -421,26 +480,61 @@ void update_game(void) {
 
 		struct move move;
 		if (string_to_move(&move, &posa, bestmove)) {
+			subtract_timecontrol(&tc[posa.turn], start, bestmovetime);
+			if (tc[posa.turn].totaltogo < 0)
+				goto lostontime;
+			if (!analysisengine)
+				reset_analysis();
 			put_move(&move, 1);
 			refreshed = 0;
 		}
 		else {
-			char fenstr[128];
-			end_game();
-			die("illegal move: %s: '%s'\n", pos_to_fen(fenstr, &posa), bestmove);
 			engine_seterror(ec, EE_ILLEGALMOVE);
 		}
 	}
+
+	struct timecontrol *timecontrol = &tc[posa.turn];
+	if (timecontrol->infinite)
+		return;
+
+	timepoint_t t = 0;
+	if ((sentwhite && (ec = whiteengine) && engine_readyok(ec)) || (sentblack && (ec = blackengine) && engine_readyok(ec))) {
+		t = engine_readyok(ec);
+	}
+	else if ((sentwhite && !whiteengine) || (sentblack && !blackengine)) {
+		t = timecontrol->offset;
+	}
+
+	if (t == 0 || time_since(t) < timecontrol->totaltogo)
+		return;
+
+lostontime:
+	end_game();
+	sprintf(result, "%s loses on time.", posa.turn == WHITE ? "White" : "Black");
+	info("Game Over", result, INFO_MESSAGE, 5, 26);
+}
+
+struct engineconnection *do_analysis(void) {
+	if (analysisengine)
+		return analysisengine;
+	if (gamerunning && posa.turn == WHITE && whiteengine)
+		return whiteengine;
+	if (gamerunning && posa.turn == BLACK && blackengine)
+		return blackengine;
+	return NULL;
 }
 
 void parse_analysis(const struct position *current) {
-	if (!analysisengine)
+	struct engineconnection *ec = do_analysis();
+	if (!ec) {
+		npastinfo = 0;
 		return;
+	}
 	struct position pos = { 0 };
 	char line[4096], *token = NULL, *endptr;
 	int error = 0;
 	char engineerror[4096] = { 0 };
-	while (errno = 0, engine_readyok(analysisengine) && fgets(line, sizeof(line), analysisengine->r) && !error) {
+	while (errno = 0, engine_readyok(ec) && fgets(line, sizeof(line), ec->r) && !error) {
 		struct uciinfo a = { 0 };
 		if ((token = strchr(line, '\n')))
 			*token = '\0';
@@ -669,8 +763,10 @@ void parse_analysis(const struct position *current) {
 			add_analysis(&a);
 	}
 	if (error) {
-		snprintf(line, 500, "Error (%d): Poorly formatted engine output: %s", error, engineerror);
-		info("Engine Error", line, INFO_ERROR, 10, 80);
+		if (analysisengine) {
+			snprintf(line, 500, "Error (%d): Poorly formatted engine output: %s", error, engineerror);
+			info("Engine Error", line, INFO_ERROR, 10, 80);
+		}
 		end_analysis();
 	}
 	else if (errno != WNOHANG) {
@@ -1016,36 +1112,9 @@ void parsecurrmove(char str[256]) {
 		sprintf(str, "%s", currmove);
 }
 
-static void analysis_draw(void) {
-	if (!analysisengine)
+static void analysisframe_draw(void) {
+	if (!do_analysis())
 		return;
-
-	parse_analysis(&posd);
-	/* Maybe the engine was terminated and analysis cancelled. */
-	if (!analysisengine)
-		return;
-
-	char depthstrs[MAXPASTINFO][8] = { 0 };
-	char timestrs[MAXPASTINFO][7] = { 0 };
-	char nodesstrs[MAXPASTINFO][7] = { 0 };
-	char scorestrs[MAXPASTINFO][7] = { 0 };
-	char pvstrs[MAXPASTINFO][256] = { 0 };
-	char tbhitsstr[8] = { 0 };
-	char hashfullstr[7] = { 0 };
-	char cpuloadstr[7] = { 0 };
-	char npsstr[7] = { 0 };
-	char currmovestr[256] = { 0 };
-	parsedepth(depthstrs);
-	parsetime(timestrs);
-	parsenodes(nodesstrs);
-	parsescore(scorestrs);
-	parsepv(pvstrs);
-	parsetbhits(tbhitsstr);
-	parsepermill(hashfullstr, hashfull, senthashfull);
-	parsepermill(cpuloadstr, cpuload, sentcpuload);
-	parsenps(npsstr);
-	parsecurrmove(currmovestr);
-
 	set_color(mainwin.win, &cs.text);
 	if (COLS >= 127) {
 		mvwaddstr(mainwin.win, 6, 109, "Depth");
@@ -1195,6 +1264,38 @@ static void analysis_draw(void) {
 			}
 		}
 	}
+}
+
+static void analysis_draw(void) {
+	if (!do_analysis())
+		return;
+
+	parse_analysis(&posd);
+	/* Maybe the engine was terminated and analysis cancelled. */
+	if (!do_analysis())
+		return;
+
+	char depthstrs[MAXPASTINFO][8] = { 0 };
+	char timestrs[MAXPASTINFO][7] = { 0 };
+	char nodesstrs[MAXPASTINFO][7] = { 0 };
+	char scorestrs[MAXPASTINFO][7] = { 0 };
+	char pvstrs[MAXPASTINFO][256] = { 0 };
+	char tbhitsstr[8] = { 0 };
+	char hashfullstr[7] = { 0 };
+	char cpuloadstr[7] = { 0 };
+	char npsstr[7] = { 0 };
+	char currmovestr[256] = { 0 };
+	parsedepth(depthstrs);
+	parsetime(timestrs);
+	parsenodes(nodesstrs);
+	parsescore(scorestrs);
+	parsepv(pvstrs);
+	parsetbhits(tbhitsstr);
+	parsepermill(hashfullstr, hashfull, senthashfull);
+	parsepermill(cpuloadstr, cpuload, sentcpuload);
+	parsenps(npsstr);
+	parsecurrmove(currmovestr);
+
 	if (COLS >= 127)
 		mvwaddstr(mainwin.win, 3, 109, tbhitsstr);
 	if (COLS >= 134)
@@ -1257,26 +1358,54 @@ void game_draw(void) {
 	if (!gamerunning)
 		return;
 
-	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 0, 3, 29);
-	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 53, 3, 29);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 0, 3, 19);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 20, 3, 10);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 52, 3, 10);
+	draw_border(mainwin.win, NULL, &cs.bordershadow, &cs.border, 1, 45, 63, 3, 19);
 
 	set_color(mainwin.win, &cs.text);
-	char tcstr[26];
+	char tcstr[7];
 	if (!tc[WHITE].infinite)
-		timepoint_str(tcstr, 26, tc[WHITE].total - (posa.turn == WHITE ? time_since(tc[WHITE].offset) : 0));
+		timepoint_str(tcstr, 7, tc[WHITE].totaltogo > 0 ? tc[WHITE].totaltogo - (posa.turn == WHITE && (!whiteengine || engine_readyok(whiteengine)) ? time_since(tc[WHITE].offset) : 0) : tc[WHITE].total);
 	else
 		sprintf(tcstr, "oo");
-	mvwaddstr(mainwin.win, 46, 27 - strlen(tcstr), tcstr);
+	mvwaddstr(mainwin.win, 46, 28 - strlen(tcstr), tcstr);
 
 	if (!tc[BLACK].infinite)
-		timepoint_str(tcstr, 26, tc[BLACK].total - (posa.turn == BLACK ? time_since(tc[BLACK].offset) : 0));
+		timepoint_str(tcstr, 7, tc[BLACK].totaltogo > 0 ? tc[BLACK].totaltogo - (posa.turn == BLACK && (!blackengine || engine_readyok(blackengine)) ? time_since(tc[BLACK].offset) : 0) : tc[BLACK].total);
 	else
 		sprintf(tcstr, "oo");
-	mvwaddstr(mainwin.win, 46, 55, tcstr);
+	mvwaddstr(mainwin.win, 46, 60 - strlen(tcstr), tcstr);
+
+	char name[17];
+	if (whiteengine) {
+		snprintf(name, 17, "%s", whiteengine->name);
+		if (strlen(name) == 16) {
+			name[12] = '.';
+			name[13] = '.';
+			name[14] = '.';
+			name[15] = '\0';
+		}
+	}
+	else
+		sprintf(name, "Human");
+	mvwaddstr(mainwin.win, 46, 10 - (strlen(name) + 1) / 2, name);
+	if (blackengine) {
+		snprintf(name, 17, "%s", blackengine->name);
+		if (strlen(name) == 16) {
+			name[12] = '.';
+			name[13] = '.';
+			name[14] = '.';
+			name[15] = '\0';
+		}
+	}
+	else
+		sprintf(name, "Human");
+	mvwaddstr(mainwin.win, 46, 72 - strlen(name) / 2, name);
 }
 
 int exclude(int y, int x) {
-	if (analysisengine) {
+	if (do_analysis()) {
 		int xmax = 0;
 		if (COLS >= 127)
 			xmax = 116;
@@ -1324,6 +1453,7 @@ void mainwin_draw(void) {
 	game_draw();
 
 	/* Should be done at the end because of refreshes. */
+	analysisframe_draw();
 	analysis_draw();
 	moves_draw();
 	wrefresh(mainwin.win);

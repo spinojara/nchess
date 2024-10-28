@@ -51,6 +51,7 @@ struct engineconnection {
 	int error;
 
 	char bestmove[128];
+	char name[17];
 	timepoint_t bestmovetime;
 	pthread_mutex_t mutex;
 };
