@@ -41,6 +41,7 @@ void analysis_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_ENTER:
 	case '\n':
+	case ' ':
 		if (selected == 0) {
 			end_analysis();
 		}

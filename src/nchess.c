@@ -51,6 +51,7 @@ int main(void) {
 	int ch;
 	while (running) {
 		ch = wgetch(wins[0]->win);
+		update_game();
 		if (ch == ERR) {
 			ch = 0;
 			if (wins[0] != &mainwin)

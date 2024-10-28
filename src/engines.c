@@ -48,6 +48,7 @@ void engines_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_ENTER:
 	case '\n':
+	case ' ':
 		refreshed = 1;
 		if (selected)
 			editengine_edit(&uciengines[selected - 1]);

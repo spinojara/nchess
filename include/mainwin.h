@@ -30,6 +30,8 @@ void set_position(const struct position *pos);
 
 int fen_filter(char c);
 
+void update_game(void);
+
 void start_game(const struct uciengine *black, const struct uciengine *white, const struct position *start, const struct timecontrol timecontrol[2]);
 
 void end_game(void);

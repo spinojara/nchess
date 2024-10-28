@@ -99,13 +99,10 @@ int forward_move(int dontreset);
 void forward_full(int dontreset);
 int prompt_promotion(int square);
 void reset_analysis(void);
-void update_game(void);
 int is_threefold(int displayed);
 int subtract_timecontrol(struct timecontrol *timecontrol, timepoint_t start, timepoint_t end);
 
 void mainwin_event(chtype ch, MEVENT *event) {
-	update_game();
-
 	if (analysisengine && engine_error(analysisengine))
 		end_analysis();
 

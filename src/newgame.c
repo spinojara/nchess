@@ -140,6 +140,7 @@ void newgame_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_ENTER:
 	case '\n':
+	case ' ':
 		switch (selected) {
 		case 0:
 			enginepicker_setup(&whiteplayer);
@@ -178,7 +179,9 @@ void newgame_event(chtype ch, MEVENT *event) {
 			place_top(&mainwin);
 			break;
 		}
-		break;
+		if (ch != ' ')
+			break;
+		/* fallthrough */
 	default:
 		switch (selected) {
 		case 0:
@@ -299,7 +302,7 @@ int filter_number(char c) {
 }
 
 void newgame_init(void) {
-	field_init(&timecontrol[0], newgame.win, 7, 2, 15, &filter_number, "40/1:30+2");
-	field_init(&timecontrol[1], newgame.win, 7, 19, 15, &filter_number, "inf");
+	field_init(&timecontrol[0], newgame.win, 7, 2, 15, &filter_number, "40/3:00+2");
+	field_init(&timecontrol[1], newgame.win, 7, 19, 15, &filter_number, "40/3:00+2");
 	field_init(&fen, newgame.win, 11, 2, 32, &fen_filter, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
