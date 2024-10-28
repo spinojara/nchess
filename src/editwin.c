@@ -1,5 +1,7 @@
 #include "editwin.h"
 
+#include <string.h>
+
 #include "color.h"
 #include "window.h"
 #include "draw.h"
@@ -17,11 +19,47 @@ static int selectedpiece = -1;
 
 static int illegal = 0;
 
+static char en_passant[3] = { '-', 0, 0 };
+
+static int en_passant_selected = 0;
+
 void editwin_draw(void);
 
 void editwin_event(chtype ch, MEVENT *event) {
 	if (ch != 0 || ch != KEY_MOUSE || !(event->bstate & BUTTON1_RELEASED))
 		illegal = 0;
+
+	if (en_passant_selected) {
+		if (ch == '-') {
+			en_passant[0] = '-';
+			en_passant[1] = '\0';
+			en_passant_selected = 0;
+			ch = 0;
+			refreshed = 0;
+			pos.en_passant = 0;
+		}
+		else if ('a' <= ch && ch <= 'h') {
+			en_passant[0] = ch;
+			en_passant[1] = '\0';
+			ch = 0;
+			refreshed = 0;
+		}
+		else if ((ch == '3' || ch == '6') && en_passant[0] != '-' && en_passant[0] != '\0') {
+			en_passant[1] = ch;
+			refreshed = 0;
+			en_passant_selected = 0;
+			pos.en_passant = square(en_passant);
+			ch = 0;
+		}
+		else if (ch != 0 && !(ch == KEY_MOUSE && ((event->bstate & BUTTON1_RELEASED) || (event->y == 38 && 84 <= event->x && event->x < 84 + 22)))) {
+			pos.en_passant = 0;
+			en_passant_selected = 0;
+			en_passant[0] = '-';
+			en_passant[1] = '\0';
+			refreshed = 0;
+		}
+	}
+
 	switch (ch) {
 	case 0:
 		refreshed = 0;
@@ -90,6 +128,12 @@ void editwin_event(chtype ch, MEVENT *event) {
 				refreshed = 1;
 				place_top(&mainwin);
 			}
+			else if (event->y == 38 && 84 <= event->x && event->x < 84 + 22) {
+				if (!en_passant_selected)
+					en_passant[0] = '\0';
+				en_passant_selected = 1;
+				refreshed = 0;
+			}
 		}
 		if (event->bstate & BUTTON1_RELEASED) {
 			if (0 < event->x && event->x < 81 && 0 < event->y && event->y < 41 && selectedsquare != -1) {
@@ -125,6 +169,14 @@ void editwin_event(chtype ch, MEVENT *event) {
 		place_top(&mainwin);
 	}
 
+	if (!en_passant_selected) {
+		char str[3];
+		memcpy(str, en_passant, 3);
+		algebraic(en_passant, pos.en_passant ? pos.en_passant : -1);
+		if (strcmp(str, en_passant))
+			refreshed = 0;
+	}
+
 	if (!refreshed)
 		editwin_draw();
 }
@@ -155,9 +207,10 @@ void editwin_draw(void) {
 	mvwaddstr(editwin.win, 34, 96, "< O-O >");
 	set_color(editwin.win, pos.q ? &cs.texthl : &cs.text);
 	mvwaddstr(editwin.win, 36, 95, "< O-O-O >");
+	set_color(editwin.win, en_passant_selected ? &cs.texthl : &cs.text);
+	mvwprintw(editwin.win, 38, 87, "En Passant:");
 	set_color(editwin.win, &cs.text);
-	char str[3];
-	mvwprintw(editwin.win, 38, 87, "En Passant: %s", algebraic(str, pos.en_passant ? pos.en_passant : -1));
+	mvwaddstr(editwin.win, 38, 99, en_passant);
 	mvwaddstr(editwin.win, 43, 85 + 11, "< Back >");
 	set_color(editwin.win, illegal ? &cs.red : &cs.text);
 	mvwaddstr(editwin.win, 43, 85, "< Save >");
