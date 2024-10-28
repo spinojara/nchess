@@ -1,7 +1,7 @@
 #ifndef DRAW_H
 #define DRAW_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "color.h"
 

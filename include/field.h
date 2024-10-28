@@ -1,7 +1,7 @@
 #ifndef FIELD_H
 #define FIELD_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 struct field {
 	int screenlen;

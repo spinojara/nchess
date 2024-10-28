@@ -1,7 +1,7 @@
 #ifndef MAINWIN_H
 #define MAINWIN_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "engine.h"
 #include "position.h"

@@ -1,7 +1,7 @@
 #ifndef ANALYSIS_H
 #define ANALYSIS_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 void analysis_event(chtype ch, MEVENT *event);
 

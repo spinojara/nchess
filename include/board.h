@@ -1,7 +1,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "color.h"
 #include "position.h"

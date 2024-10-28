@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <ncurses.h>
+#include <curses.h>
 
 #include "position.h"
 #include "window.h"

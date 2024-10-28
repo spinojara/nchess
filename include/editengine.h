@@ -1,7 +1,7 @@
 #ifndef EDITENGINE_H
 #define EDITENGINE_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "engines.h"
 

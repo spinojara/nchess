@@ -1,7 +1,7 @@
 #ifndef ENGINEPICKER_H
 #define ENGINEPICKER_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "engine.h"
 

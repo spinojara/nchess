@@ -1,7 +1,7 @@
 #ifndef TOPBAR_H
 #define TOPBAR_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 void topbar_event(chtype ch, MEVENT *event);
 

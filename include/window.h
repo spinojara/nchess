@@ -1,7 +1,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #define KEY_ESC 27
 

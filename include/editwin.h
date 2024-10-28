@@ -1,7 +1,7 @@
 #ifndef EDITWIN_H
 #define EDITWIN_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 extern struct position pos;
 

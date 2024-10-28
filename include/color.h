@@ -1,7 +1,7 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 struct color {
 	chtype attr;

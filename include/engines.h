@@ -1,7 +1,7 @@
 #ifndef ENGINES_H
 #define ENGINES_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "engine.h"
 

@@ -1,7 +1,7 @@
 #ifndef NEWGAME_H
 #define NEWGAME_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 void newgame_event(chtype ch, MEVENT *event);
 

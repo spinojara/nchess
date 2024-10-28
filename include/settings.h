@@ -1,7 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <ncurses.h>
+#include <curses.h>
 
 void settings_event(chtype ch, MEVENT *event);
 

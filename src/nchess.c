@@ -2,7 +2,7 @@
 #include <time.h>
 #include <signal.h>
 
-#include <ncurses.h>
+#include <curses.h>
 
 #include "position.h"
 #include "board.h"
