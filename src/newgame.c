@@ -165,14 +165,26 @@ void newgame_event(chtype ch, MEVENT *event) {
 		case 7:;
 			struct timecontrol tc[2];
 			refreshed = 0;
-			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1)))
+			if (!timecontrol_string(&tc[WHITE], field_buffer(&timecontrol[0], 1))) {
+				timecontrol[0].error = 1;
 				break;
-			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1)))
+			}
+			if (!timecontrol_string(&tc[BLACK], field_buffer(&timecontrol[1], 1))) {
+				timecontrol[1].error = 1;
 				break;
-			if (!currentposition && !fen_is_ok(field_buffer(&fen, 1)))
+			}
+			if (!currentposition && !fen_is_ok(field_buffer(&fen, 1))) {
+				fen.error = 1;
 				break;
-			if ((tc[WHITE].infinite && whiteplayer) || (tc[BLACK].infinite && blackplayer))
+			}
+			if (tc[WHITE].infinite && whiteplayer) {
+				timecontrol[0].error = 1;
 				break;
+			}
+			if (tc[BLACK].infinite && blackplayer) {
+				timecontrol[1].error = 1;
+				break;
+			}
 			refreshed = 1;
 			struct position pos;
 			start_game(blackplayer, whiteplayer, currentposition ? &posd : pos_from_fen(&pos, field_buffer(&fen, 1)), tc);

@@ -122,10 +122,15 @@ void mainwin_event(chtype ch, MEVENT *event) {
 				pos_from_fen(&new, buf);
 				set_position(&new);
 				fenselected = 0;
+				fen.error = 0;
+			}
+			else {
+				fen.error = 1;
 			}
 		}
 		else if (ch == KEY_ESC) {
 			fenselected = 0;
+			fen.error = 0;
 		}
 	}
 
@@ -1487,6 +1492,7 @@ void set_position(const struct position *pos) {
 	selectedmove = -1;
 	shownmove = 0;
 	fenselected = 0;
+	fen.error = 0;
 	selectedsquare = -1;
 	reset_analysis();
 }

@@ -145,6 +145,8 @@ void engines_remove(struct uciengine *edit) {
 
 	if (selected > nengines)
 		selected = nengines;
+
+	qsort(uciengines, nengines, sizeof(*uciengines), &enginecmp);
 }
 
 void engines_draw(void) {

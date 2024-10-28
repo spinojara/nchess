@@ -71,8 +71,14 @@ void editengine_event(chtype ch, MEVENT *event) {
 
 void editengine_save(void) {
 	/* name and command fields cannot be empty. */
-	if (!field[0].len || !field[1].len)
+	if (!field[0].len) {
+		field[0].error = 1;
 		return;
+	}
+	if (!field[1].len) {
+		field[1].error = 1;
+		return;
+	}
 	selected = 0;
 	refreshed = 1;
 	engines_add(edit, field_buffer(&field[0], 0), field_buffer(&field[1], 0), field_buffer(&field[2], 0));

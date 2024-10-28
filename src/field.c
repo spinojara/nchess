@@ -29,6 +29,8 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 	field->len = 0;
 	field->size = 32;
 	field->str = malloc(field->size);
+
+	field->error = 0;
 }
 
 /* Draw the \n and \t characters as a red 'n' and 't' respectively. */
@@ -42,7 +44,7 @@ void field_draw(struct field *field, attr_t attr, int draw_cursor, int blocked) 
 		else
 			c = ' ';
 
-		wattrset(field->win, (draw_cursor && field->disp + j == field->cur ? cs.texthl.attr : field->len ? cs.text.attr : cs.textdim.attr) | attr);
+		wattrset(field->win, (draw_cursor && field->disp + j == field->cur ? cs.texthl.attr : field->len ? field->error ? cs.red.attr : cs.text.attr : field->error ? cs.reddim.attr : cs.textdim.attr) | attr);
 
 		if (blocked) {
 			c = ACS_HLINE | A_UNDERLINE;
@@ -137,6 +139,7 @@ void field_backspace(struct field *field) {
 }
 
 void field_driver(struct field *field, chtype ch, MEVENT *event) {
+	field->error = 0;
 	switch (ch) {
 	case 127:
 	case KEY_BACKSPACE:

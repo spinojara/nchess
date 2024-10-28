@@ -33,6 +33,7 @@ struct colors {
 	struct color texterror;
 
 	struct color red;
+	struct color reddim;
 };
 
 extern struct colors cs;

@@ -19,6 +19,8 @@ struct field {
 
 	WINDOW *win;
 	int y, x;
+
+	int error;
 };
 
 void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char), const char *suggestion);

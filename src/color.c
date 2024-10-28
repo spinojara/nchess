@@ -38,6 +38,7 @@ void make_colors(void) {
 	COLOR(cs.texterror,    COLOR_RED,    COLOR_WHITE, A_NORMAL);
 
 	COLOR(cs.red,          COLOR_BLACK,  COLOR_RED,   A_NORMAL);
+	COLOR(cs.reddim,       COLOR_WHITE,  COLOR_RED,   A_DIM);
 
 	make_color(&cs.wpw);
 	make_color(&cs.bpw);
@@ -61,6 +62,7 @@ void make_colors(void) {
 	make_color(&cs.texterror);
 
 	make_color(&cs.red);
+	make_color(&cs.reddim);
 }
 
 void set_color(WINDOW *win, struct color *c) {
