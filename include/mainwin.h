@@ -11,6 +11,8 @@ extern struct position posd;
 extern int flipped;
 extern int relativescore;
 extern int gamerunning;
+extern int autoflip;
+extern int hideengineoutput;
 
 void mainwin_event(chtype ch, MEVENT *event);
 

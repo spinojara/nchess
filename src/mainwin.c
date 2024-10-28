@@ -49,6 +49,8 @@ static int nmove = 0;
 static int fenselected = 0;
 static struct field fen;
 
+int hideengineoutput = 0;
+int autoflip = 1;
 int relativescore = 0;
 
 static int sentdepth = 0;
@@ -517,6 +519,8 @@ lostontime:
 struct engineconnection *do_analysis(void) {
 	if (analysisengine)
 		return analysisengine;
+	if (hideengineoutput)
+		return NULL;
 	if (gamerunning && posa.turn == WHITE && whiteengine)
 		return whiteengine;
 	if (gamerunning && posa.turn == BLACK && blackengine)
@@ -849,8 +853,15 @@ void put_move(struct move *move, int at_end) {
 
 	nmove++;
 
-	if (nmove == selectedmove + 2)
+	if (nmove == selectedmove + 2) {
+		if (gamerunning && autoflip) {
+			if (posa.turn == WHITE && !whiteengine)
+				flipped = 0;
+			if (posa.turn == BLACK && !blackengine)
+				flipped = 1;
+		}
 		forward_move(0);
+	}
 
 	if (save_history) {
 		nmove = save_history;

@@ -9,7 +9,7 @@ static int refreshed = 0;
 
 static int selected = 0;
 
-static const char *options[] = { "Flip Board", "Relative Scores" };
+static const char *options[] = { "Flip Board", "Relative Scores", "Auto Flip", "Hide Engine Output" };
 
 static int noptions = sizeof(options) / sizeof(*options);
 
@@ -22,9 +22,8 @@ void settings_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_MOUSE:
 		if (1 <= event->y && event->y <= noptions && 2 <= event->x && event->x < 26) {
-			refreshed = 1;
+			refreshed = 0;
 			selected = event->y - 1;
-
 		}
 		else {
 			break;
@@ -32,7 +31,7 @@ void settings_event(chtype ch, MEVENT *event) {
 		/* fallthrough */
 	case KEY_ENTER:
 	case '\n':
-		refreshed = 1;
+	case ' ':
 		switch (selected) {
 		case 0:
 			flipped = !flipped;
@@ -40,9 +39,14 @@ void settings_event(chtype ch, MEVENT *event) {
 		case 1:
 			relativescore = !relativescore;
 			break;
+		case 2:
+			autoflip = !autoflip;
+			break;
+		case 3:
+			hideengineoutput = !hideengineoutput;
+			break;
 		}
-		place_top(&mainwin);
-		refreshed = 1;
+		refreshed = 0;
 		break;
 	case KEY_ESC:
 	case 'q':
@@ -80,7 +84,7 @@ void settings_draw(void) {
 	set_color(settings.win, selected == 0 ? &cs.texthl : &cs.text);
 	for (int i = 0; i < noptions; i++) {
 		set_color(settings.win, &cs.text);
-		if ((i == 0 && flipped) || (i == 1 && relativescore))
+		if ((i == 0 && flipped) || (i == 1 && relativescore) || (i == 2 && autoflip) || (i == 3 && hideengineoutput))
 			mvwaddch(settings.win, 1 + i, 2, '*');
 		set_color(settings.win, selected == i ? &cs.texthl : &cs.text);
 		mvwprintw(settings.win, 1 + i, 4, "< %s >", options[i]);
