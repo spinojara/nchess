@@ -199,7 +199,7 @@ struct position *pos_from_fen(struct position *pos, const char *fen) {
 }
 
 int en_passant_needed(const struct position *pos) {
-	if (!pos->en_passant)
+	if (!pos->en_passant || (rank_of(pos->en_passant) != 2 && pos->turn == BLACK) || (rank_of(pos->en_passant) != 5 && pos->turn == WHITE))
 		return 0;
 
 	struct move moves[MOVES_MAX];
