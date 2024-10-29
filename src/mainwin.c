@@ -240,6 +240,14 @@ draw:
 
 int is_over(int displayed);
 
+void clear_analysis(struct engineconnection *ec) {
+	if (!ec)
+		return;
+
+	char line[4096];
+	while (fgets(line, sizeof(line), ec->r));
+}
+
 void reset_analysis(void) {
 	sentdepth = 0;
 	sentseldepth = 0;
@@ -254,6 +262,7 @@ void reset_analysis(void) {
 	sentcurrmove = 0;
 	sentcurrmovenumber = 0;
 	npastinfo = 0;
+	clear_analysis(analysisengine);
 	if (!analysisengine)
 		return;
 	fprintf(analysisengine->w, "stop\n");
@@ -318,7 +327,6 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 		if (posa.turn == BLACK && !blackengine)
 			flipped = 1;
 	}
-
 
 	tc[0] = timecontrol[0];
 	tc[1] = timecontrol[1];
@@ -503,8 +511,10 @@ void update_game(void) {
 			subtract_timecontrol(&tc[posa.turn], start, bestmovetime);
 			if (tc[posa.turn].totaltogo < 0)
 				goto lostontime;
-			if (!analysisengine)
+			if (!analysisengine) {
+				clear_analysis(ec);
 				reset_analysis();
+			}
 			put_move(&move, 1);
 			refreshed = 0;
 		}
