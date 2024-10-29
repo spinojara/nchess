@@ -517,7 +517,7 @@ char *move_pgn(char *str, const struct position *pos, const struct move *move) {
 
 	/* Capture, or en passant. */
 	if (pos->mailbox[move->to].type != EMPTY || move->flag) {
-		if (piece == PAWN)
+		if (piece == PAWN && i == 0)
 			str[i++] = 'a' + f;
 		str[i++] = 'x';
 	}
