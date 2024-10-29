@@ -143,6 +143,9 @@ void field_driver(struct field *field, chtype ch, MEVENT *event) {
 	switch (ch) {
 	case 127:
 	case KEY_BACKSPACE:
+#ifdef PDCURSES
+	case 8:
+#endif
 		field_backspace(field);
 		break;
 	case KEY_LEFT:

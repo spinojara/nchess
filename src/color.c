@@ -16,6 +16,8 @@ void make_color(struct color *c) {
 }
 
 void make_colors(void) {
+	int has_dim = A_DIM != A_NORMAL;
+
 	COLOR(cs.wpw, COLOR_WHITE, COLOR_CYAN, A_BOLD);
 	COLOR(cs.bpw, COLOR_BLACK, COLOR_CYAN, A_NORMAL);
 	COLOR(cs.cpw, COLOR_BLACK, COLOR_CYAN, A_BOLD);
@@ -33,7 +35,7 @@ void make_colors(void) {
 
 	COLOR(cs.text,         COLOR_BLACK,  COLOR_WHITE, A_NORMAL);
 	COLOR(cs.texthl,       COLOR_WHITE,  COLOR_BLUE,  A_NORMAL | A_BOLD);
-	COLOR(cs.textdim,      COLOR_WHITE,  COLOR_WHITE, A_DIM);
+	COLOR(cs.textdim,      has_dim ? COLOR_WHITE : COLOR_BLACK,  COLOR_WHITE, A_DIM);
 	COLOR(cs.textblue,     COLOR_BLUE,   COLOR_WHITE, A_NORMAL);
 	COLOR(cs.texterror,    COLOR_RED,    COLOR_WHITE, A_NORMAL);
 

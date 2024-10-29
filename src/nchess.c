@@ -19,7 +19,9 @@
 int running = 1;
 
 int main(void) {
+#ifdef __unix__
 	signal(SIGPIPE, SIG_IGN);
+#endif
 	setlocale(LC_ALL, "");
 	initscr();
 	if (!has_colors()) {
@@ -29,7 +31,9 @@ int main(void) {
 	}
 	init_colors();
 	keypad(stdscr, TRUE);
+#ifdef NCURSES_VERSION
 	set_escdelay(25);
+#endif
 	curs_set(0);
 	cbreak();
 	noecho();

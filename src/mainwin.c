@@ -775,8 +775,6 @@ void parse_analysis(const struct position *current) {
 		}
 		end_analysis();
 	}
-	else if (errno != WNOHANG) {
-	}
 }
 
 void end_analysis(void) {
