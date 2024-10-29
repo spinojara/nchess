@@ -30,6 +30,7 @@ void die(const char *fmt, ...) {
 	endwin();
 	vfprintf(stderr, fmt, args);
 	va_end(args);
+	getchar();
 	exit(1);
 }
 
