@@ -437,7 +437,7 @@ long perft(struct position *pos, int depth, int verbose) {
 	struct move moves[MOVES_MAX];
 	movegen(pos, moves, 0);
 
-	uint64_t nodes = 0, count;
+	long long nodes = 0, count;
 	for (struct move *move = moves; !is_null(move); move++) {
 		if (depth == 1) {
 			count = 1;
@@ -451,7 +451,7 @@ long perft(struct position *pos, int depth, int verbose) {
 		}
 		if (verbose) {
 			print_move(move);
-			printf(": %ld\n", count);
+			printf(": %lld\n", count);
 		}
 	}
 	return nodes;
