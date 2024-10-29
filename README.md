@@ -4,6 +4,6 @@ A curses based chess gui.
 ## Building
 Run
 ```
-$ Make
+$ make
 ```
 in the root directory.
