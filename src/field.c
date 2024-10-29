@@ -5,9 +5,9 @@
 
 #include "color.h"
 
-void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filter)(char), const char *suggestion) {
+void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filterchar)(char), const char *suggestion) {
 	field->screenlen = screenlen;
-	field->filter = filter;
+	field->filter = filterchar;
 
 	field->win = win;
 	field->y = y;

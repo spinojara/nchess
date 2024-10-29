@@ -3,16 +3,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
-#include <poll.h>
 #include <errno.h>
+#ifndef _WIN32
+#include <sys/wait.h>
+#include <poll.h>
+#endif
 
 #include "window.h"
 #include "timepoint.h"
 
+#ifndef _WIN32
 struct arg {
 	FILE *w;
 	FILE *r;
@@ -67,8 +70,10 @@ void *engine_listen(void *arg) {
 
 	return NULL;
 }
+#endif
 
 void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
+#ifndef _WIN32
 	memset(ec->name, 0, 17);
 	snprintf(ec->name, 17, "%s", ue->name);
 	int parentchild[2];
@@ -119,9 +124,11 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	setbuf(arg->w, NULL);
 	pthread_mutex_init(&ec->mutex, 0);
 	pthread_create(&ec->tid, NULL, &engine_listen, arg);
+#endif
 }
 
 int engine_close(struct engineconnection *ec) {
+#ifndef _WIN32
 	int error = engine_error(ec);
 
 	struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
@@ -147,54 +154,81 @@ join:;
 	pthread_join(ec->tid, NULL);
 	pthread_mutex_destroy(&ec->mutex);
 	return error;
+#else
+	return 0;
+#endif
 }
 
 timepoint_t engine_readyok(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	timepoint_t readyok = ec->readyok;
 	pthread_mutex_unlock(&ec->mutex);
 	return readyok;
+#else
+	return 0;
+#endif
 }
 
 int engine_isready(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	ec->readyok = 0;
 	ec->bestmovetime = 0;
 	ec->isready = time_now();
 	pthread_mutex_unlock(&ec->mutex);
 	return fprintf(ec->w, "isready\n") < 0;
+#else
+	return 1;
+#endif
 }
 
 int engine_hasbestmove(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	int ret = ec->bestmovetime != 0;
 	pthread_mutex_unlock(&ec->mutex);
 
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 int engine_awaiting(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	int ret = ec->isready || ec->readyok;
 	pthread_mutex_unlock(&ec->mutex);
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 void engine_reset(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	ec->readyok = ec->isready = 0;
 	pthread_mutex_unlock(&ec->mutex);
+#endif
 }
 
 void engine_seterror(struct engineconnection *ec, int err) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	ec->error = err;
 	pthread_mutex_unlock(&ec->mutex);
+#endif
 }
 
 int engine_error(struct engineconnection *ec) {
+#ifndef _WIN32
 	pthread_mutex_lock(&ec->mutex);
 	int error = ec->error;
 	pthread_mutex_unlock(&ec->mutex);
 	return error;
+#else
+	return 0;
+#endif
 }

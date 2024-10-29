@@ -62,3 +62,9 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 
 	delwin(win);
 }
+
+#ifdef _WIN32
+void not_supported(void) {
+	info("Unsupported", "This action is not yet supported on your current platform.", INFO_MESSAGE, 6, 42);
+}
+#endif

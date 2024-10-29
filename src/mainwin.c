@@ -267,11 +267,13 @@ void reset_analysis(void) {
 }
 
 void start_analysis(struct uciengine *ue) {
+#ifndef _WIN32
 	end_analysis();
 
 	analysisengine = malloc(sizeof(*analysisengine));
 	engine_open(analysisengine, ue);
 	reset_analysis();
+#endif
 }
 
 void add_analysis(struct uciinfo *a) {
@@ -288,6 +290,7 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 		end_game();
 	gamerunning = 1;
 
+#ifndef _WIN32
 	if (black) {
 		blackengine = malloc(sizeof(*blackengine));
 		engine_open(blackengine, black);
@@ -303,6 +306,9 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 	else {
 		whiteengine = NULL;
 	}
+#else
+	whiteengine = blackengine = NULL;
+#endif
 
 	tc[0] = timecontrol[0];
 	tc[1] = timecontrol[1];

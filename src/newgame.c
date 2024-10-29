@@ -10,6 +10,7 @@
 #include "enginepicker.h"
 #include "mainwin.h"
 #include "timepoint.h"
+#include "info.h"
 
 static int refreshed = 0;
 
@@ -33,15 +34,25 @@ void newgame_event(chtype ch, MEVENT *event) {
 	case KEY_MOUSE:
 		if (event->y == 3 && 2 <= event->x && event->x < 17) {
 			selected = 0;
+#ifndef _WIN32
 			enginepicker_setup(&whiteplayer);
 			place_top(&enginepicker);
 			refreshed = 1;
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 		}
 		else if (event->y == 3 && 19 <= event->x && event->x < 34) {
 			selected = 1;
+#ifndef _WIN32
 			enginepicker_setup(&blackplayer);
 			place_top(&enginepicker);
 			refreshed = 1;
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 		}
 		else if (event->y == 6 && 14 <= event->x && event->x < 14 + 8) {
 			selected = 2;
@@ -143,14 +154,24 @@ void newgame_event(chtype ch, MEVENT *event) {
 	case ' ':
 		switch (selected) {
 		case 0:
+#ifndef _WIN32
 			enginepicker_setup(&whiteplayer);
 			place_top(&enginepicker);
 			refreshed = 1;
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 			break;
 		case 1:
+#ifndef _WIN32
 			enginepicker_setup(&blackplayer);
 			place_top(&enginepicker);
 			refreshed = 1;
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 			break;
 		case 2:
 			locktimecontrol = !locktimecontrol;

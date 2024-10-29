@@ -6,6 +6,7 @@
 #include "draw.h"
 #include "mainwin.h"
 #include "editwin.h"
+#include "info.h"
 
 static int selected = 0;
 
@@ -89,7 +90,12 @@ void topbar_event(chtype ch, MEVENT *event) {
 			place_top(&editwin);
 			break;
 		case 4:
+#ifndef _WIN32
 			place_top(&analysis);
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 			break;
 		}
 		break;

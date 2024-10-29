@@ -180,6 +180,7 @@ void engines_resize(void) {
 }
 
 int engines_readconfig(void) {
+#ifndef _WIN32
 	const char *home = getenv("HOME");
 	if (home == NULL)
 		return 1;
@@ -252,9 +253,13 @@ int engines_readconfig(void) {
 
 error:
 	return 1;
+#else
+	return 0;
+#endif
 }
 
 int engines_writeconfig(void) {
+#ifndef _WIN32
 	if (noconfig || !configchanged)
 		return 0;
 	const char *home = getenv("HOME");
@@ -288,5 +293,6 @@ int engines_writeconfig(void) {
 	}
 
 	fclose(f);
+#endif
 	return 0;
 }
