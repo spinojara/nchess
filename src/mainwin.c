@@ -496,11 +496,16 @@ void update_game(void) {
 	}
 	else if ((posa.turn == WHITE && (ec = whiteengine) && engine_readyok(ec) && engine_hasbestmove(ec)) || (posa.turn == BLACK && (ec = blackengine) && engine_readyok(ec) && engine_hasbestmove(ec))) {
 		char bestmove[128] = { 0 };
+#ifndef _WIN32
 		pthread_mutex_lock(&ec->mutex);
 		memcpy(bestmove, &ec->bestmove[9], 128 - 9);
 		timepoint_t bestmovetime = ec->bestmovetime;
 		timepoint_t start = ec->readyok;
 		pthread_mutex_unlock(&ec->mutex);
+#else
+		timepoint_t bestmovetime = 0;
+		timepoint_t start = 0;
+#endif
 		engine_reset(ec);
 		char *c;
 		if ((c = strchr(bestmove, ' ')) || (c = strchr(bestmove, '\n')))

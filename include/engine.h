@@ -3,7 +3,9 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#ifndef _WIN32
 #include <pthread.h>
+#endif
 
 #include "timepoint.h"
 
@@ -43,7 +45,9 @@ struct uciengine {
 
 struct engineconnection {
 	pid_t pid;
+#ifndef _WIN32
 	pthread_t tid;
+#endif
 	FILE *w, *r;
 
 	timepoint_t isready;
@@ -53,7 +57,9 @@ struct engineconnection {
 	char bestmove[128];
 	char name[17];
 	timepoint_t bestmovetime;
+#ifndef _WIN32
 	pthread_mutex_t mutex;
+#endif
 };
 
 void engine_open(struct engineconnection *ec, const struct uciengine *ue);
