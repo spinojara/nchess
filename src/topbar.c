@@ -73,7 +73,12 @@ void topbar_event(chtype ch, MEVENT *event) {
 			place_top(&settings);
 			break;
 		case 2:
+#ifndef _WIN32
 			place_top(&engines);
+#else
+			not_supported();
+			refreshed = 0;
+#endif
 			break;
 		case 3:
 			if (gamerunning)
