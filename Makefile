@@ -3,7 +3,7 @@ RM        = rm
 INSTALL   = install
 
 CC        = cc
-CSTANDARD = -std=c99 -DPOSIX_C_SOURCE=200112L
+CSTANDARD = -std=c99 -DPOSIX_C_SOURCE=200112L -pthread
 CWARNINGS = -Wall -Wextra -Wshadow -pedantic -Wvla -Wno-format-truncation
 COPTIMIZE = -O2
 
