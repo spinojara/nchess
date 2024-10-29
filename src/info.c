@@ -6,6 +6,7 @@
 
 #include "color.h"
 #include "draw.h"
+#include "window.h"
 
 int next_word(char *word, const char *text, int *i) {
 	int j, flag;
@@ -57,10 +58,19 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 
 	int ch;
 	MEVENT event;
-	if ((ch = wgetch(win)) != '\n' && ch != 'q')
-		while (wgetch(win) == KEY_MOUSE && getmouse(&event) == OK && (event.bstate & BUTTON1_RELEASED));
+	for (i = 0; i < 2; i++) {
+		while ((ch = wgetch(win)) == KEY_MOUSE && getmouse(&event) == OK && (event.bstate & BUTTON1_RELEASED));
+		if (ch == 'q' || ch == '\n' || ch == KEY_ENTER)
+			break;
+	}
 
 	delwin(win);
+	struct window *top = wins[0];
+	for (i = 0; i < nwins; i++)
+		if (wins[i] == &mainwin || wins[i] == &editwin)
+			break;
+	place_top(wins[i]);
+	place_top(top);
 }
 
 #ifdef _WIN32
