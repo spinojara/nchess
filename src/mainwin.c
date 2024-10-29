@@ -297,6 +297,7 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 	}
 	else {
 		blackengine = NULL;
+		flipped = 1;
 	}
 
 	if (white) {
@@ -305,10 +306,19 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 	}
 	else {
 		whiteengine = NULL;
+		flipped = 0;
 	}
 #else
 	whiteengine = blackengine = NULL;
 #endif
+
+	if (autoflip) {
+		if (posa.turn == WHITE && !whiteengine)
+			flipped = 0;
+		if (posa.turn == BLACK && !blackengine)
+			flipped = 1;
+	}
+
 
 	tc[0] = timecontrol[0];
 	tc[1] = timecontrol[1];
