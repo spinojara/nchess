@@ -30,7 +30,7 @@ obj/%.o: src/%.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	$(RM) -rf obj nchess
+	$(RM) -rf obj nchess.exe
 
 .SUFFIXES: .c .h
 .PHONY: all clean
