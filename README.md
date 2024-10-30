@@ -1,5 +1,5 @@
 # nchess
-A curses based chess gui.
+A curses based, UCI compatible, chess GUI.
 
 ![nchess game between bitbit and stockfish](files/nchess.png?raw=true)
 
