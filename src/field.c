@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "color.h"
+#include "window.h"
 
 void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, int (*filterchar)(char), const char *suggestion) {
 	field->screenlen = screenlen;
@@ -19,6 +20,8 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 
 	if (suggestion) {
 		field->suggestion = malloc(strlen(suggestion) + 1);
+		if (!field->suggestion)
+			die("error: malloc\n");
 		strcpy(field->suggestion, suggestion);
 	}
 	else {
@@ -29,6 +32,8 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 	field->len = 0;
 	field->size = 32;
 	field->str = malloc(field->size);
+	if (!field->str)
+		die("error: malloc\n");
 
 	field->error = 0;
 }
@@ -109,6 +114,8 @@ void field_insert(struct field *field, char c) {
 	if (field->len >= field->size - 1) {
 		field->size *= 2;
 		field->str = realloc(field->str, field->size);
+		if (!field->str)
+			die("error: realloc\n");
 	}
 	for (int i = field->len; i >= field->cur; i--)
 		field->str[i + 1] = field->str[i];

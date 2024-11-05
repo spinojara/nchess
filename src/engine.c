@@ -107,6 +107,8 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	ec->w = fdopen(parentchild[1], "w");
 	setbuf(ec->w, NULL);
 	struct arg *arg = malloc(sizeof(*arg));
+	if (!arg)
+		die("error: malloc\n");
 	arg->w = fdopen(parentparent[1], "w");
 	arg->r = fdopen(childparent[0], "r");
 	arg->ec = ec;

@@ -96,10 +96,16 @@ void engines_add(struct uciengine *edit, const char *name, const char *command, 
 	if (!noconfig)
 		configchanged = 1;
 	char *namep = malloc(strlen(name) + 1);
+	if (!namep)
+		die("error: malloc\n");
 	memcpy(namep, name, strlen(name) + 1);
 	char *commandp = malloc(strlen(command) + 1);
+	if (!commandp)
+		die("error: malloc\n");
 	memcpy(commandp, command, strlen(command) + 1);
 	char *workingdirp = malloc(strlen(workingdir) + 1);
+	if (!workingdirp)
+		die("error: malloc\n");
 	memcpy(workingdirp, workingdir, strlen(workingdir) + 1);
 	if (edit) {
 		free(edit->name);
@@ -114,6 +120,8 @@ void engines_add(struct uciengine *edit, const char *name, const char *command, 
 	if (nengines >= sengines) {
 		sengines = sengines ? 2 * sengines : 4;
 		uciengines = realloc(uciengines, sengines * sizeof(*uciengines));
+		if (!uciengines)
+			die("error: realloc\n");
 	}
 	uciengines[nengines].name = namep;
 	uciengines[nengines].command = commandp;

@@ -280,6 +280,8 @@ void start_analysis(struct uciengine *ue) {
 	end_analysis();
 
 	analysisengine = malloc(sizeof(*analysisengine));
+	if (!analysisengine)
+		die("error: malloc\n");
 	engine_open(analysisengine, ue);
 	reset_analysis();
 #endif
@@ -302,6 +304,8 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 #ifndef _WIN32
 	if (black) {
 		blackengine = malloc(sizeof(*blackengine));
+		if (!blackengine)
+			die("error: malloc\n");
 		engine_open(blackengine, black);
 	}
 	else {
@@ -311,6 +315,8 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 
 	if (white) {
 		whiteengine = malloc(sizeof(*whiteengine));
+		if (!whiteengine)
+			die("error: malloc\n");
 		engine_open(whiteengine, white);
 	}
 	else {
@@ -874,6 +880,8 @@ void put_move(struct move *move, int at_end) {
 	if (nmove >= smove) {
 		smove = smove ? 2 * smove : 4;
 		vmove = realloc(vmove, smove * sizeof(*vmove));
+		if (!vmove)
+			die("error: realloc\n");
 	}
 
 	vmove[nmove].move = *move;

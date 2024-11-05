@@ -38,6 +38,8 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 
 	int len = strlen(message);
 	char *buf = malloc(len + 1);
+	if (!buf)
+		die("error: malloc\n");
 	int line = 2;
 
 	int i = 0, wordlen, col = 3;
