@@ -79,6 +79,7 @@ void piece_draw(WINDOW *win, int y, int x, struct piece *p, struct color *fg) {
 		break;
 	default:
 		assert(0);
+		return;
 	}
 	
 	set_color(win, fg);

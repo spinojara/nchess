@@ -91,6 +91,8 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 		dup2(parentchild[0], STDIN_FILENO);
 		dup2(childparent[1], STDOUT_FILENO);
 		int fd = open("/dev/null", O_WRONLY);
+		if (fd == -1)
+			exit(-1);
 		dup2(fd, STDERR_FILENO);
 
 		if (ue->workingdir[0])
@@ -104,13 +106,21 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	close(parentchild[0]);
 	close(childparent[1]);
 	ec->r = fdopen(parentparent[0], "r");
+	if (!ec->r)
+		die("error: fdopen\n");
 	ec->w = fdopen(parentchild[1], "w");
+	if (!ec->w)
+		die("error: fdopen\n");
 	setbuf(ec->w, NULL);
 	struct arg *arg = malloc(sizeof(*arg));
 	if (!arg)
 		die("error: malloc\n");
 	arg->w = fdopen(parentparent[1], "w");
+	if (!arg->w)
+		die("error: fdopen\n");
 	arg->r = fdopen(childparent[0], "r");
+	if (!arg->r)
+		die("error: fdopen\n");
 	arg->ec = ec;
 	int flags;
 	flags = fcntl(parentparent[0], F_GETFL, 0);
@@ -125,7 +135,8 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 
 	setbuf(arg->w, NULL);
 	pthread_mutex_init(&ec->mutex, 0);
-	pthread_create(&ec->tid, NULL, &engine_listen, arg);
+	if (pthread_create(&ec->tid, NULL, &engine_listen, arg))
+		die("error: pthread_create\n");
 #endif
 }
 
@@ -153,8 +164,8 @@ int engine_close(struct engineconnection *ec) {
 join:;
 	if (!engine_error(ec))
 		engine_seterror(ec, EE_TERMINATED);
-	pthread_join(ec->tid, NULL);
-	pthread_mutex_destroy(&ec->mutex);
+	if (pthread_join(ec->tid, NULL) || pthread_mutex_destroy(&ec->mutex))
+		die("error: pthread\n");
 	return error;
 #else
 	return 0;
