@@ -77,8 +77,15 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		case TYPE_CHECK:
 			ucioption[selected].value.i = !ucioption[selected].value.i;
 			break;
-		case TYPE_COMBO:
-			/* FIXME */
+		case TYPE_COMBO:;
+			int i;
+			for (i = 0; i < ucioption[selected].nvar; i++)
+				if (!strcmp(ucioption[selected].var[i], ucioption[selected].value.str))
+					break;
+			assert(i < ucioption[selected].nvar);
+			i = (i + 1) % ucioption[selected].nvar;
+			free(ucioption[selected].value.str);
+			ucioption[selected].value.str = strdup(ucioption[selected].var[i]);
 			break;
 		case TYPE_BUTTON:
 			/* FIXME */
@@ -91,11 +98,19 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		break;
 	case ' ':
 		switch (ucioption[selected].type) {
+		case TYPE_COMBO:;
+			int i;
+			for (i = 0; i < ucioption[selected].nvar; i++)
+				if (!strcmp(ucioption[selected].var[i], ucioption[selected].value.str))
+					break;
+			assert(i < ucioption[selected].nvar);
+			i = (i + 1) % ucioption[selected].nvar;
+			free(ucioption[selected].value.str);
+			ucioption[selected].value.str = strdup(ucioption[selected].var[i]);
+			break;
+			break;
 		case TYPE_BUTTON:
 			/* FIXME press button */
-			break;
-		case TYPE_COMBO:
-			/* FIXME switch value */
 			break;
 		case TYPE_SPIN:
 			ch = '+';
@@ -203,7 +218,10 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 	fflush(w);
 
 	int error = 0;
+	int responsive = 0;
 	while (!error && fgets(buf, sizeof(buf), r)) {
+		if (!strncmp(buf, "id name ", 8))
+			responsive = 1;
 		if (strncmp(buf, "option ", 7))
 			continue;
 		nucioption++;
@@ -222,6 +240,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		char *def = strstr(buf, " default ");
 		char *min = strstr(buf, " min ");
 		char *max = strstr(buf, " max ");
+		char *var = strstr(buf, " var ");
 
 		if (!name || !type) {
 			error = 1;
@@ -261,9 +280,6 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			else
 				ucioption[nucioption - 1].def.i = 0;
 			break;
-		case TYPE_COMBO:
-			/* FIXME */
-			break;
 		case TYPE_SPIN:
 			if (!min || !max) {
 				error = 1;
@@ -291,6 +307,53 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			}
 			else {
 				ucioption[nucioption - 1].def.i = ucioption[nucioption - 1].min;
+			}
+			break;
+		case TYPE_COMBO:
+			if (!var) {
+				error = 1;
+				break;
+			}
+			if (def) {
+				int length = var - def - 9;
+				if (length <= 0) {
+					error = 1;
+					break;
+				}
+				ucioption[nucioption - 1].def.str = calloc(length + 1, 1);
+				strncat(ucioption[nucioption - 1].def.str, def + 9, length);
+			}
+			char *cur = buf;
+			ucioption[nucioption - 1].nvar = 0;
+			ucioption[nucioption - 1].var = NULL;
+			while ((cur = strstr(cur, " var "))) {
+				cur += 5;
+				ucioption[nucioption - 1].nvar++;
+				ucioption[nucioption - 1].var = realloc(ucioption[nucioption - 1].var, ucioption[nucioption - 1].nvar * sizeof(*(ucioption[nucioption - 1].var)));
+				if (strstr(cur, " var ")) {
+					ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1] = calloc(strstr(cur, " var ") - cur + 1, 1);
+					strncpy(ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1], cur, strstr(cur, " var ") - cur);
+				}
+				else {
+					ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1] = calloc(strlen(cur), 1);
+					strncpy(ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1], cur, strlen(cur) - 1);
+				}
+			}
+			if (ucioption[nucioption - 1].nvar == 0) {
+				error = 1;
+				break;
+			}
+
+			if (!ucioption[nucioption - 1].def.str)
+				ucioption[nucioption - 1].def.str = strdup(ucioption[nucioption - 1].var[0]);
+
+			int found = 0;
+			for (int i = 0; i < ucioption[nucioption - 1].nvar; i++)
+				if (!strcmp(ucioption[nucioption - 1].var[i], ucioption[nucioption - 1].def.str))
+					found = 1;
+			if (!found) {
+				error = 1;
+				break;
 			}
 			break;
 		case TYPE_STRING:
@@ -322,10 +385,8 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			ucioption[nucioption - 1].value.i = ucioption[nucioption - 1].def.i;
 			break;
 		case TYPE_STRING:
-			ucioption[nucioption - 1].value.str = strdup(ucioption[nucioption - 1].def.str);
-			break;
 		case TYPE_COMBO:
-			/* FIXME */
+			ucioption[nucioption - 1].value.str = strdup(ucioption[nucioption - 1].def.str);
 			break;
 		}
 
@@ -357,12 +418,15 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		case TYPE_STRING:
 			field_set(&ucioptionfield[nucioption - 1], ucioption[nucioption - 1].value.str);
 			break;
-		case TYPE_COMBO:
+		default:
 			break;
 		}
 	}
 
 	kill(pid, SIGKILL);
+
+	if (!responsive)
+		error = 1;
 
 	if (error)
 		ucioptions_free_all();
@@ -398,6 +462,12 @@ void ucioptions_draw(void) {
 			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(ucioption[i].name), ": [");
 			mvwaddch(ucioptions.win, i + 1, 6 + strlen(ucioption[i].name), ']');
 			mvwaddch(ucioptions.win, i + 1, 5 + strlen(ucioption[i].name), ucioption[i].value.i ? '*' : ' ');
+		}
+		else if (ucioption[i].type == TYPE_COMBO) {
+			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
+			mvwaddstr(ucioptions.win, i + 1, 2, ucioption[i].name);
+			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(ucioption[i].name), ": ");
+			mvwaddstr(ucioptions.win, i + 1, 4 + strlen(ucioption[i].name), ucioption[i].value.str);
 		}
 		else {
 			set_color(ucioptions.win, &cs.text);

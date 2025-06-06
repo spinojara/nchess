@@ -167,6 +167,11 @@ void ucioption_free(int *nuo, struct ucioption **uo) {
 			free((*uo)[i].value.str);
 			free((*uo)[i].def.str);
 		}
+		if ((*uo)[i].type == TYPE_COMBO) {
+			for (int j = 0; j < (*uo)[i].nvar; j++)
+				free((*uo)[i].var[j]);
+			free((*uo)[i].var);
+		}
 	}
 	free(*uo);
 	*uo = NULL;

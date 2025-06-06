@@ -41,6 +41,7 @@ struct ucioption {
 	} def;
 	int64_t min;
 	int64_t max;
+	int nvar;
 	char **var;
 };
 
