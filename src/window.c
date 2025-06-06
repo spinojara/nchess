@@ -14,13 +14,14 @@
 #include "settings.h"
 #include "newgame.h"
 #include "enginepicker.h"
+#include "ucioptions.h"
 
 #define MINLINES 56
 #define MINCOLS 117
 
-struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis, enginepicker;
+struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis, enginepicker, ucioptions;
 
-struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine, &analysis, &enginepicker };
+struct window *wins[] = { &topbar, &mainwin, &editwin, &newgame, &settings, &engines, &editengine, &analysis, &enginepicker, &ucioptions };
 
 const int nwins = sizeof(wins) / sizeof(*wins);
 
@@ -72,6 +73,10 @@ void window_init(void) {
 	enginepicker.win = newwin(0, 0, 0, 0);
 	keypad(enginepicker.win, TRUE);
 	enginepicker.event = &enginepicker_event;
+
+	ucioptions.win = newwin(0, 0, 0, 0);
+	keypad(ucioptions.win, TRUE);
+	ucioptions.event = &ucioptions_event;
 }
 
 void window_resize(void) {
@@ -90,6 +95,7 @@ void window_resize(void) {
 	settings_resize();
 	newgame_resize();
 	enginepicker_resize();
+	ucioptions_resize();
 
 	touchwin(stdscr);
 	wrefresh(stdscr);

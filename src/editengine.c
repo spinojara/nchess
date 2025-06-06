@@ -1,14 +1,19 @@
 #include "editengine.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "window.h"
 #include "color.h"
 #include "draw.h"
 #include "field.h"
+#include "ucioptions.h"
+#include "info.h"
 
 struct field field[3];
 
+int nucioption;
+static struct ucioption *ucioption = NULL;
 static struct uciengine *edit = NULL;
 
 static int refreshed = 0;
@@ -35,16 +40,23 @@ void editengine_event(chtype ch, MEVENT *event) {
 				field_driver(&field[selected], ch, event);
 		}
 		else if (event->y == 4 && 10 <= event->x && event->x < 18)
-				editengine_save();
+			editengine_save();
 		else if (event->y == 5 && 9 <= event->x && event->x < 19)
-				editengine_remove();
+			editengine_remove();
+		else if (event->y == 6 && 6 <= event->x && event->x < 21) {
+			refreshed = 1;
+			if (!ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption))
+				place_top(&ucioptions);
+			else
+				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 5, 26);
+		}
 		break;
 	case KEY_UP:
 		if (selected > 0)
 			selected--;
 		break;
 	case KEY_DOWN:
-		if (selected < 4)
+		if (selected < 5)
 			selected++;
 		break;
 	case KEY_ENTER:
@@ -53,12 +65,18 @@ void editengine_event(chtype ch, MEVENT *event) {
 			selected++;
 		else if (selected == 3)
 			editengine_save();
-		else if (selected == 4) {
+		else if (selected == 4)
 			editengine_remove();
+		else if (selected == 5) {
+			refreshed = 1;
+			if (!ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption))
+				place_top(&ucioptions);
+			else
+				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 6, 30);
 		}
 		break;
 	case '\t':
-		selected = (selected + 1) % 4;
+		selected = (selected + 1) % 6;
 		break;
 	default:
 		if (selected <= 2)
@@ -81,7 +99,7 @@ void editengine_save(void) {
 	}
 	selected = 0;
 	refreshed = 1;
-	engines_add(edit, field_buffer(&field[0], 0), field_buffer(&field[1], 0), field_buffer(&field[2], 0));
+	engines_add(edit, field_buffer(&field[0], 0), field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption);
 	for (int i = 0; i < 3; i++)
 		field_clear(&field[i]);
 	place_top(&engines);
@@ -109,10 +127,13 @@ void editengine_draw(void) {
 	mvwaddstr(editengine.win, 4, 10, "< Save >");
 	set_color(editengine.win, selected == 4 ? &cs.texthl : &cs.text);
 	mvwaddstr(editengine.win, 5, 9, edit ? "< Remove >" : "< Cancel >");
+	set_color(editengine.win, selected == 5 ? &cs.texthl : &cs.text);
+	mvwaddstr(editengine.win, 6, 6, "< UCI Options >");
 
 	wrefresh(editengine.win);
 	refreshed = 1;
 }
+
 void editengine_resize(void) {
 	wresize(editengine.win, 35, 30);
 	mvwin(editengine.win, 7, 7);
@@ -152,4 +173,23 @@ void editengine_edit(struct uciengine *ue) {
 		field_driver(&field[1], edit->command[i], NULL);
 	for (unsigned i = 0; i < strlen(edit->workingdir); i++)
 		field_driver(&field[2], edit->workingdir[i], NULL);
+}
+
+void ucioption_free(int *nuo, struct ucioption **uo) {
+	for (int i = 0; i < *nuo; i++) {
+		free((*uo)[i].name);
+		if ((*uo)[i].type == TYPE_STRING || (*uo)[i].type == TYPE_COMBO) {
+			free((*uo)[i].value.str);
+			free((*uo)[i].def.str);
+		}
+	}
+	free(*uo);
+	*uo = NULL;
+	*nuo = 0;
+}
+
+void editengine_uci(int nuo, struct ucioption *uo) {
+	ucioption_free(&nucioption, &ucioption);
+	nucioption = nuo;
+	ucioption = uo;
 }

@@ -138,6 +138,24 @@ void engine_open(struct engineconnection *ec, const struct uciengine *ue) {
 	if (pthread_create(&ec->tid, NULL, &engine_listen, arg))
 		die("error: pthread_create\n");
 #endif
+	for (int i = 0; i < ue->nucioption; i++) {
+		switch (ue->ucioption[i].type) {
+		case TYPE_BUTTON:
+			break;
+		case TYPE_CHECK:
+			fprintf(ec->w, "setoption name %s value %s\n", ue->ucioption[i].name, ue->ucioption[i].value.i ? "true" : "false");
+			break;
+		case TYPE_SPIN:
+			fprintf(ec->w, "setoption name %s value %ld\n", ue->ucioption[i].name, ue->ucioption[i].value.i);
+			break;
+		case TYPE_STRING:
+			fprintf(ec->w, "setoption name %s value %s\n", ue->ucioption[i].name, ue->ucioption[i].value.str);
+			break;
+		case TYPE_COMBO:
+			fprintf(ec->w, "setoption name %s value %s\n", ue->ucioption[i].name, ue->ucioption[i].value.str);
+			break;
+		}
+	}
 }
 
 int engine_close(struct engineconnection *ec) {

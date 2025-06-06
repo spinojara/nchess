@@ -92,7 +92,7 @@ int enginecmp(const void *e1, const void *e2) {
 	return strcmp(((struct uciengine *)e1)->name, ((struct uciengine *)e2)->name);
 }
 
-void engines_add(struct uciengine *edit, const char *name, const char *command, const char *workingdir) {
+void engines_add(struct uciengine *edit, const char *name, const char *command, const char *workingdir, int nucioption, struct ucioption *ucioption) {
 	if (!noconfig)
 		configchanged = 1;
 	char *namep = malloc(strlen(name) + 1);
@@ -111,9 +111,13 @@ void engines_add(struct uciengine *edit, const char *name, const char *command, 
 		free(edit->name);
 		free(edit->command);
 		free(edit->workingdir);
+		ucioption_free(&edit->nucioption, &edit->ucioption);
+
 		edit->name = namep;
 		edit->command = commandp;
 		edit->workingdir = workingdirp;
+		edit->nucioption = nucioption;
+		edit->ucioption = ucioption;
 		goto sort;
 	}
 
@@ -126,6 +130,8 @@ void engines_add(struct uciengine *edit, const char *name, const char *command, 
 	uciengines[nengines].name = namep;
 	uciengines[nengines].command = commandp;
 	uciengines[nengines].workingdir = workingdirp;
+	uciengines[nengines].nucioption = nucioption;
+	uciengines[nengines].ucioption = ucioption;
 	nengines++;
 	selected = 0;
 
@@ -252,7 +258,7 @@ int engines_readconfig(void) {
 		/* newline */
 		fgetc(f);
 
-		engines_add(NULL, name, command, workingdir);
+		engines_add(NULL, name, command, workingdir, 0, NULL);
 	}
 
 	fclose(f);

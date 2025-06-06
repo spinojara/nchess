@@ -12,8 +12,9 @@
 enum {
 	TYPE_CHECK,
 	TYPE_SPIN,
-	TYPE_STRING,
+	TYPE_COMBO,
 	TYPE_BUTTON,
+	TYPE_STRING,
 };
 
 enum {
@@ -29,18 +30,26 @@ enum {
  */
 struct ucioption {
 	char *name;
-	char *value;
 	int type;
-	char *min;
-	char *max;
-	char *def;
+	union {
+		char *str;
+		int64_t i;
+	} value;
+	union {
+		char *str;
+		int64_t i;
+	} def;
+	int64_t min;
+	int64_t max;
+	char **var;
 };
 
 struct uciengine {
 	char *name;
 	char *command;
 	char *workingdir;
-	struct ucioption *ucioptions;
+	int nucioption;
+	struct ucioption *ucioption;
 };
 
 struct engineconnection {

@@ -37,4 +37,6 @@ void field_set(struct field *field, const char *str);
 
 void field_insert(struct field *field, char c);
 
+void field_free(struct field *field);
+
 #endif

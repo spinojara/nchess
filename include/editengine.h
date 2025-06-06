@@ -13,4 +13,8 @@ void editengine_init(void);
 
 void editengine_edit(struct uciengine *ue);
 
+void editengine_uci(int nucioption, struct ucioption *ucioption);
+
+void ucioption_free(int *nuo, struct ucioption **uo);
+
 #endif

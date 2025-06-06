@@ -24,7 +24,7 @@ LDFLAGS ::= $(CFLAGS) $(LDLIBS)
 SRC       = analysis.c board.c color.c draw.c editengine.c editwin.c \
 	    engine.c engines.c field.c info.c mainwin.c move.c nchess.c \
 	    position.c settings.c topbar.c window.c newgame.c enginepicker.c \
-	    timepoint.c
+	    timepoint.c ucioptions.c
 
 OBJ       = $(patsubst %.c,obj/%.o,$(SRC))
 

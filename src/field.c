@@ -19,10 +19,9 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 	field->x = x;
 
 	if (suggestion) {
-		field->suggestion = malloc(strlen(suggestion) + 1);
+		field->suggestion = strdup(suggestion);
 		if (!field->suggestion)
 			die("error: malloc\n");
-		strcpy(field->suggestion, suggestion);
 	}
 	else {
 		field->suggestion = NULL;
@@ -186,4 +185,9 @@ void field_set(struct field *field, const char *str) {
 	int len = strlen(str);
 	for (int i = 0; i < len; i++)
 		field_insert(field, str[i]);
+}
+
+void field_free(struct field *field) {
+	free(field->str);
+	free(field->suggestion);
 }

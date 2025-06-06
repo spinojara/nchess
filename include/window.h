@@ -12,7 +12,7 @@ struct window {
 	void (*event)(chtype, MEVENT *);
 };
 
-extern struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis, enginepicker;
+extern struct window topbar, mainwin, editwin, newgame, settings, engines, editengine, analysis, enginepicker, ucioptions;
 extern struct window *wins[];
 extern const int nwins;
 
