@@ -46,6 +46,7 @@ void settings_event(chtype ch, MEVENT *event) {
 			hideengineoutput = !hideengineoutput;
 			break;
 		}
+		mainwin.event(0, NULL);
 		refreshed = 0;
 		break;
 	case KEY_ESC:
