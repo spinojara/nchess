@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "window.h"
 #include "color.h"
@@ -25,6 +26,7 @@ void ucioptions_draw(void);
 void ucioptions_free_all(void);
 void ucioptions_free_fields(void);
 int ucioptions_fetch_fields(void);
+void ucioptions_restore(void);
 
 void ucioptions_event(chtype ch, MEVENT *event) {
 	refreshed = 0;
@@ -36,27 +38,36 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		ucioptions_free_all();
 		place_top(&editengine);
 		break;
+	case KEY_MOUSE:
+		break;
 	case KEY_UP:
 		if (selected > 0)
 			selected--;
 		break;
 	case KEY_DOWN:
-		if (selected < nucioption)
+		if (selected < nucioption + 1)
 			selected++;
 		break;
 	case '\n':
 		if (selected == nucioption) {
+			ucioptions_restore();
+			break;
+		}
+		if (selected == nucioption + 1) {
 			if (nucioption > 0) {
 				if (ucioptions_fetch_fields())
 					break;
 				ucioptions_free_fields();
 				editengine_uci(nucioption, ucioption);
+				nucioption = 0;
+				ucioption = NULL;
 			}
 			else {
 				ucioptions_free_all();
 			}
 			refreshed = 1;
 			place_top(&editengine);
+			break;
 		}
 		switch (ucioption[selected].type) {
 		case TYPE_STRING:
@@ -76,7 +87,7 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		}
 		break;
 	case '\t':
-		selected = (selected + 1) % (nucioption + 1);
+		selected = (selected + 1) % (nucioption + 2);
 		break;
 	case ' ':
 		switch (ucioption[selected].type) {
@@ -149,11 +160,9 @@ int filter_integer(char c) {
 }
 
 int ucioptions_init(const char *command, const char *workingdir, int nuo, const struct ucioption *uo) {
+	ucioptions_free_all();
 	selected = 0;
-	ucioption = NULL;
 	char buf[BUFSIZ], *endptr;
-
-	nucioption = 0;
 
 	pid_t pid;
 	int parentchild[2];
@@ -199,10 +208,14 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			continue;
 		nucioption++;
 		ucioption = realloc(ucioption, nucioption * sizeof(*ucioption));
+		if (!ucioption)
+			die("error: realloc");
 		ucioption[nucioption - 1].name = NULL;
 		ucioption[nucioption - 1].value.str = NULL;
 		ucioption[nucioption - 1].def.str = NULL;
 		ucioptionfield = realloc(ucioptionfield, nucioption * sizeof(*ucioptionfield));
+		if (!ucioptionfield)
+			die("error: realloc");
 
 		char *name = strstr(buf, " name ");
 		char *type = strstr(buf, " type ");
@@ -335,7 +348,6 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				}
 			}
 		}
-		/* FIXME: Set the value variable if it is already set from the saved options. */
 
 		switch (ucioption[nucioption - 1].type) {
 		case TYPE_SPIN:
@@ -396,7 +408,9 @@ void ucioptions_draw(void) {
 	}
 	set_color(ucioptions.win, &cs.text);
 	set_color(ucioptions.win, selected == nucioption ? &cs.texthl : &cs.text);
-	mvwaddstr(ucioptions.win, nucioption + 1, 10, "< Save >");
+	mvwaddstr(ucioptions.win, nucioption + 1, 9, "< Restore >");
+	set_color(ucioptions.win, selected == nucioption  + 1 ? &cs.texthl : &cs.text);
+	mvwaddstr(ucioptions.win, nucioption + 2, 10, "< Save >");
 
 	wrefresh(ucioptions.win);
 	refreshed = 1;
@@ -435,4 +449,28 @@ int ucioptions_fetch_fields(void) {
 		}
 	}
 	return 0;
+}
+
+void ucioptions_restore(void) {
+	for (int i = 0; i < nucioption; i++) {
+		switch (ucioption[i].type) {
+		case TYPE_COMBO:
+		case TYPE_STRING:
+			free(ucioption[i].value.str);
+			ucioption[i].value.str = strdup(ucioption[i].def.str);
+			field_set(&ucioptionfield[i], ucioption[i].value.str);
+			break;
+		case TYPE_CHECK:
+		case TYPE_SPIN:;
+			ucioption[i].value.i = ucioption[i].def.i;
+			char buf[BUFSIZ];
+			sprintf(buf, "%ld", ucioption[i].value.i);
+			field_set(&ucioptionfield[i], buf);
+			break;
+		case TYPE_BUTTON:
+			break;
+		default:
+			assert(0);
+		}
+	}
 }

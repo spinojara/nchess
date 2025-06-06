@@ -95,18 +95,15 @@ int enginecmp(const void *e1, const void *e2) {
 void engines_add(struct uciengine *edit, const char *name, const char *command, const char *workingdir, int nucioption, struct ucioption *ucioption) {
 	if (!noconfig)
 		configchanged = 1;
-	char *namep = malloc(strlen(name) + 1);
+	char *namep = strdup(name);
 	if (!namep)
-		die("error: malloc\n");
-	memcpy(namep, name, strlen(name) + 1);
-	char *commandp = malloc(strlen(command) + 1);
+		die("error: strdup\n");
+	char *commandp = strdup(command);
 	if (!commandp)
-		die("error: malloc\n");
-	memcpy(commandp, command, strlen(command) + 1);
-	char *workingdirp = malloc(strlen(workingdir) + 1);
+		die("error: strdup\n");
+	char *workingdirp = strdup(workingdir);
 	if (!workingdirp)
-		die("error: malloc\n");
-	memcpy(workingdirp, workingdir, strlen(workingdir) + 1);
+		die("error: strdup\n");
 	if (edit) {
 		free(edit->name);
 		free(edit->command);
@@ -153,6 +150,7 @@ void engines_remove(struct uciengine *edit) {
 	free(edit->name);
 	free(edit->command);
 	free(edit->workingdir);
+	ucioption_free(&edit->nucioption, &edit->ucioption);
 
 	if (nengines)
 		uciengines[i] = uciengines[--nengines];
@@ -193,6 +191,30 @@ void engines_resize(void) {
 	engines_draw();
 }
 
+char *engines_readconfig_option(FILE *f, const char *prefix, char *s, size_t size) {
+	char buf[8192];
+	if (!fgets(buf, sizeof(buf), f))
+		return NULL;
+
+	if (strncmp(buf, prefix, strlen(prefix)))
+		return NULL;
+
+	if (s) {
+		if (strlen(buf) - strlen(prefix) > size)
+			return NULL;
+	}
+
+	if (!strchr(buf, '\n'))
+		return NULL;
+	*strchr(buf, '\n') = '\0';
+
+	if (s)
+		strcpy(s, buf + strlen(prefix));
+	else
+		s = strdup(buf + strlen(prefix));
+	return s;
+}
+
 int engines_readconfig(void) {
 #ifndef _WIN32
 	const char *home = getenv("HOME");
@@ -211,54 +233,95 @@ int engines_readconfig(void) {
 	}
 
 	char *endptr;
-	int n, i;
 	char name[8192];
 	char command[8192];
 	char workingdir[8192];
+	char optionsstr[8192];
+	int options;
+	int loops = 0;
 	while (1) {
+		loops++;
 		if (!fgets(buf, sizeof(buf), f))
 			break;
+		if (strcmp(buf, "[engine]\n"))
+			goto error;
+
+		if (!engines_readconfig_option(f, "name=", name, sizeof(name))) {
+			die("10 %d", loops);
+			goto error;
+		}
+		if (!engines_readconfig_option(f, "command=", command, sizeof(command))) {
+			die("11");
+			goto error;
+		}
+		if (!engines_readconfig_option(f, "workingdir=", workingdir, sizeof(workingdir))) {
+			die("12");
+			goto error;
+		}
+		if (!engines_readconfig_option(f, "options=", optionsstr, sizeof(optionsstr))) {
+			die("13");
+			goto error;
+		}
 
 		errno = 0;
-		n = strtol(buf, &endptr, 10);
-		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
+		options = strtol(optionsstr, &endptr, 10);
+		if (errno || *endptr != '\0' || options < 0) {
+			die("14");
 			goto error;
+		}
 
-		for (i = 0; i < n; i++)
-			name[i] = fgetc(f);
-		name[i] = '\0';
-		/* newline */
-		fgetc(f);
+		/* We don't have to free this memory in case of
+		 * error since nchess exits anyway.
+		 */
+		struct ucioption *uo = NULL;
+		if (options) {
+			uo = calloc(options, sizeof(*uo));
+			for (int i = 0; i < options; i++) {
+				if (!(uo[i].name = engines_readconfig_option(f, "name=", NULL, 0))) {
+					die("2");
+					goto error;
+				}
+				char type[2];
+				char value[8192];
+				if (!engines_readconfig_option(f, "type=", type, sizeof(type))) {
+					die("3");
+					goto error;
+				}
 
-		if (!fgets(buf, sizeof(buf), f))
-			goto error;
+				uo[i].type = type[0] - '0';
+				if (uo[i].type != TYPE_BUTTON && !engines_readconfig_option(f, "value=", value, sizeof(value))) {
+					die("4");
+					goto error;
+				}
 
-		errno = 0;
-		n = strtol(buf, &endptr, 10);
-		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
-			goto error;
+				switch (uo[i].type) {
+				case TYPE_CHECK:
+				case TYPE_SPIN:
+					errno = 0;
+					uo[i].value.i = strtol(value, &endptr, 10);
+					if (errno || *endptr != '\0') {
+						die("5");
+						goto error;
+					}
+					break;
+				case TYPE_COMBO:
+				case TYPE_STRING:
+					uo[i].value.str = strdup(value);
+					if (!uo[i].value.str) {
+						die("6");
+						goto error;
+					}
+					break;
+				case TYPE_BUTTON:
+					break;
+				default:
+					die("7");
+					goto error;
+				}
+			}
+		}
 
-		for (i = 0; i < n; i++)
-			command[i] = fgetc(f);
-		command[i] = '\0';
-		/* newline */
-		fgetc(f);
-
-		if (!fgets(buf, sizeof(buf), f))
-			goto error;
-
-		errno = 0;
-		n = strtol(buf, &endptr, 10);
-		if (errno || *endptr != '\n' || n < 0 || n >= 8192)
-			goto error;
-
-		for (i = 0; i < n; i++)
-			workingdir[i] = fgetc(f);
-		workingdir[i] = '\0';
-		/* newline */
-		fgetc(f);
-
-		engines_add(NULL, name, command, workingdir, 0, NULL);
+		engines_add(NULL, name, command, workingdir, options, uo);
 	}
 
 	fclose(f);
@@ -301,9 +364,26 @@ int engines_writeconfig(void) {
 
 	for (int i = 0; i < nengines; i++) {
 		struct uciengine *e = &uciengines[i];
-		fprintf(f, "%ld\n%s\n", strlen(e->name), e->name);
-		fprintf(f, "%ld\n%s\n", strlen(e->command), e->command);
-		fprintf(f, "%ld\n%s\n", strlen(e->workingdir), e->workingdir);
+		fprintf(f, "[engine]\n");
+		fprintf(f, "name=%s\n", e->name);
+		fprintf(f, "command=%s\n", e->command);
+		fprintf(f, "workingdir=%s\n", e->workingdir);
+		fprintf(f, "options=%d\n", e->nucioption);
+		for (int j = 0; j < e->nucioption; j++) {
+			fprintf(f, "name=%s\n", e->ucioption[j].name);
+			fprintf(f, "type=%d\n", e->ucioption[j].type);
+			switch (e->ucioption[j].type) {
+			case TYPE_CHECK:
+			case TYPE_SPIN:
+				fprintf(f, "value=%ld\n", e->ucioption[j].value.i);
+				break;
+			case TYPE_COMBO:
+			case TYPE_STRING:
+				fprintf(f, "value=%s\n", e->ucioption[j].value.str);
+			case TYPE_BUTTON:
+				break;
+			}
+		}
 	}
 
 	fclose(f);

@@ -23,6 +23,7 @@ static int selected = 0;
 void editengine_draw(void);
 void editengine_save(void);
 void editengine_remove(void);
+void ucioption_free(int *nuo, struct ucioption **uo);
 
 void editengine_event(chtype ch, MEVENT *event) {
 	refreshed = 0;
@@ -31,6 +32,7 @@ void editengine_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_ESC:
 		refreshed = 1;
+		ucioption_free(&nucioption, &ucioption);
 		place_top(&engines);
 		break;
 	case KEY_MOUSE:
@@ -50,8 +52,7 @@ void editengine_event(chtype ch, MEVENT *event) {
 			else
 				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 5, 26);
 		}
-		break;
-	case KEY_UP:
+		break; case KEY_UP:
 		if (selected > 0)
 			selected--;
 		break;
@@ -100,6 +101,8 @@ void editengine_save(void) {
 	selected = 0;
 	refreshed = 1;
 	engines_add(edit, field_buffer(&field[0], 0), field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption);
+	nucioption = 0;
+	ucioption = NULL;
 	for (int i = 0; i < 3; i++)
 		field_clear(&field[i]);
 	place_top(&engines);
@@ -108,7 +111,9 @@ void editengine_save(void) {
 void editengine_remove(void) {
 	selected = 0;
 	refreshed = 1;
-	engines_remove(edit);
+	ucioption_free(&nucioption, &ucioption);
+	if (edit)
+		engines_remove(edit);
 	place_top(&engines);
 }
 
@@ -155,26 +160,6 @@ void editengine_init(void) {
 	field_init(&field[2], editengine.win, 3, 15, 11, &filterpath, NULL);
 }
 
-void editengine_edit(struct uciengine *ue) {
-	/* Save old edited engine in this case. */
-	if (!ue && !edit)
-		return;
-	edit = ue;
-	field_clear(&field[0]);
-	field_clear(&field[1]);
-	field_clear(&field[2]);
-
-	if (!edit)
-		return;
-
-	for (unsigned i = 0; i < strlen(edit->name); i++)
-		field_driver(&field[0], edit->name[i], NULL);
-	for (unsigned i = 0; i < strlen(edit->command); i++)
-		field_driver(&field[1], edit->command[i], NULL);
-	for (unsigned i = 0; i < strlen(edit->workingdir); i++)
-		field_driver(&field[2], edit->workingdir[i], NULL);
-}
-
 void ucioption_free(int *nuo, struct ucioption **uo) {
 	for (int i = 0; i < *nuo; i++) {
 		free((*uo)[i].name);
@@ -188,8 +173,57 @@ void ucioption_free(int *nuo, struct ucioption **uo) {
 	*nuo = 0;
 }
 
+struct ucioption *ucioption_copy(int nuo, const struct ucioption *src) {
+	struct ucioption *dst = calloc(nuo, sizeof(*dst));
+	for (int i = 0; i < nuo; i++) {
+		dst[i].name = strdup(src[i].name);
+		dst[i].type = src[i].type;
+		switch (dst[i].type) {
+		case TYPE_CHECK:
+		case TYPE_SPIN:
+			dst[i].value.i = src[i].value.i;
+			break;
+		case TYPE_STRING:
+		case TYPE_COMBO:
+			dst[i].value.str = strdup(src[i].value.str);
+			break;
+			break;
+		case TYPE_BUTTON:
+		default:
+			break;
+		}
+	}
+	return dst;
+}
+
 void editengine_uci(int nuo, struct ucioption *uo) {
 	ucioption_free(&nucioption, &ucioption);
 	nucioption = nuo;
 	ucioption = uo;
+}
+
+void editengine_edit(struct uciengine *ue) {
+	/* Save old edited engine in this case. */
+	if (!ue && !edit)
+		return;
+	edit = ue;
+	nucioption = 0;
+	ucioption = NULL;
+	field_clear(&field[0]);
+	field_clear(&field[1]);
+	field_clear(&field[2]);
+
+	if (!edit)
+		return;
+
+	ucioption_free(&nucioption, &ucioption);
+	nucioption = ue->nucioption;
+	ucioption = ucioption_copy(ue->nucioption, ue->ucioption);
+
+	for (unsigned i = 0; i < strlen(edit->name); i++)
+		field_driver(&field[0], edit->name[i], NULL);
+	for (unsigned i = 0; i < strlen(edit->command); i++)
+		field_driver(&field[1], edit->command[i], NULL);
+	for (unsigned i = 0; i < strlen(edit->workingdir); i++)
+		field_driver(&field[2], edit->workingdir[i], NULL);
 }
