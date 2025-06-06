@@ -180,7 +180,7 @@ void engines_resize(void) {
 	engines_draw();
 }
 
-char *engines_readconfig_option(FILE *f, const char *prefix, char *s, size_t size) {
+char *readconfig_option(FILE *f, const char *prefix, char *s, size_t size) {
 	char buf[8192];
 	if (!fgets(buf, sizeof(buf), f))
 		return NULL;
@@ -235,29 +235,19 @@ int engines_readconfig(void) {
 		if (strcmp(buf, "[engine]\n"))
 			goto error;
 
-		if (!engines_readconfig_option(f, "name=", name, sizeof(name))) {
-			die("10 %d", loops);
+		if (!readconfig_option(f, "name=", name, sizeof(name)))
 			goto error;
-		}
-		if (!engines_readconfig_option(f, "command=", command, sizeof(command))) {
-			die("11");
+		if (!readconfig_option(f, "command=", command, sizeof(command)))
 			goto error;
-		}
-		if (!engines_readconfig_option(f, "workingdir=", workingdir, sizeof(workingdir))) {
-			die("12");
+		if (!readconfig_option(f, "workingdir=", workingdir, sizeof(workingdir)))
 			goto error;
-		}
-		if (!engines_readconfig_option(f, "options=", optionsstr, sizeof(optionsstr))) {
-			die("13");
+		if (!readconfig_option(f, "options=", optionsstr, sizeof(optionsstr)))
 			goto error;
-		}
 
 		errno = 0;
 		options = strtol(optionsstr, &endptr, 10);
-		if (errno || *endptr != '\0' || options < 0) {
-			die("14");
+		if (errno || *endptr != '\0' || options < 0)
 			goto error;
-		}
 
 		/* We don't have to free this memory in case of
 		 * error since nchess exits anyway.
@@ -266,45 +256,35 @@ int engines_readconfig(void) {
 		if (options) {
 			uo = calloc(options, sizeof(*uo));
 			for (int i = 0; i < options; i++) {
-				if (!(uo[i].name = engines_readconfig_option(f, "name=", NULL, 0))) {
-					die("2");
+				if (!(uo[i].name = readconfig_option(f, "name=", NULL, 0)))
 					goto error;
-				}
+
 				char type[2];
 				char value[8192];
-				if (!engines_readconfig_option(f, "type=", type, sizeof(type))) {
-					die("3");
+				if (!readconfig_option(f, "type=", type, sizeof(type)))
 					goto error;
-				}
 
 				uo[i].type = type[0] - '0';
-				if (uo[i].type != TYPE_BUTTON && !engines_readconfig_option(f, "value=", value, sizeof(value))) {
-					die("4");
+				if (uo[i].type != TYPE_BUTTON && !readconfig_option(f, "value=", value, sizeof(value)))
 					goto error;
-				}
 
 				switch (uo[i].type) {
 				case TYPE_CHECK:
 				case TYPE_SPIN:
 					errno = 0;
 					uo[i].value.i = strtol(value, &endptr, 10);
-					if (errno || *endptr != '\0') {
-						die("5");
+					if (errno || *endptr != '\0')
 						goto error;
-					}
 					break;
 				case TYPE_COMBO:
 				case TYPE_STRING:
 					uo[i].value.str = strdup(value);
-					if (!uo[i].value.str) {
-						die("6");
+					if (!uo[i].value.str)
 						goto error;
-					}
 					break;
 				case TYPE_BUTTON:
 					break;
 				default:
-					die("7");
 					goto error;
 				}
 			}

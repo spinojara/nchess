@@ -21,4 +21,6 @@ int engines_readconfig(void);
 
 int engines_writeconfig(void);
 
+char *readconfig_option(FILE *f, const char *prefix, char *s, size_t size);
+
 #endif

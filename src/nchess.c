@@ -15,6 +15,7 @@
 #include "info.h"
 #include "editwin.h"
 #include "newgame.h"
+#include "settings.h"
 
 int running = 1;
 
@@ -23,6 +24,10 @@ int main(void) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	setlocale(LC_ALL, "");
+
+	int settingsret = settings_readconfig();
+	int enginesret = engines_readconfig();
+
 	initscr();
 	if (!has_colors()) {
 		endwin();
@@ -46,9 +51,14 @@ int main(void) {
 	window_resize();
 	editengine_init();
 
-	if (engines_readconfig()) {
+	if (settingsret) {
 		running = 0;
-		info("Config Error", "An unrecoverable error occured while parsing the engine configuration file (~/.config/nchess/engine.conf). Please fix or delete the file, then try again.", INFO_ERROR, 7, 62);
+		info("Config Error", "An unrecoverable error occured while parsing the nchess configuration file (~/.config/nchess/nchess.conf). Please fix or delete the file, then run nchess again.", INFO_ERROR, 7, 62);
+	}
+
+	if (enginesret) {
+		running = 0;
+		info("Config Error", "An unrecoverable error occured while parsing the engine configuration file (~/.config/nchess/engine.conf). Please fix or delete the file, then run nchess again.", INFO_ERROR, 7, 62);
 	}
 
 	MEVENT event;
@@ -96,4 +106,5 @@ int main(void) {
 	end_analysis();
 	end_game();
 	engines_writeconfig();
+	settings_writeconfig();
 }
