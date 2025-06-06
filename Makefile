@@ -40,6 +40,9 @@ all: nchess
 nchess: $(OBJ)
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
+nchessengine: obj/nchessengine.o
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
 obj/%.o: src/%.c Makefile
 	@$(MKDIR_P) obj
 	$(CC) $(CFLAGS) -c $< -o $@

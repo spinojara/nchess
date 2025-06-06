@@ -72,10 +72,19 @@ void editengine_event(chtype ch, MEVENT *event) {
 			editengine_remove();
 		else if (selected == 5) {
 			refreshed = 1;
-			if (!ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption))
+			switch (ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption)) {
+			case 0:
 				place_top(&ucioptions);
-			else
+				break;
+			case 1:
 				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 6, 30);
+				break;
+			case 2:
+				info("Engine Error", "The engine is unresponsive.", INFO_ERROR, 5, 33);
+				break;
+			default:
+				break;
+			}
 		}
 		break;
 	case 'j':

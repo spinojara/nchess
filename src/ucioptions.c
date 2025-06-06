@@ -39,7 +39,23 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		place_top(&editengine);
 		break;
 	case KEY_MOUSE:
-		break;
+		if (1 <= event->y && event->y <= nucioption && 2 <= event->x && event->x < 26) {
+			selected = event->y - 1;
+			if (ucioption[selected].type == TYPE_STRING || ucioption[selected].type == TYPE_SPIN) {
+				field_driver(&ucioptionfield[selected], ch, event);
+				break;
+			}
+		}
+		else if (event->y == nucioption + 1 && 9 <= event->x && event->x < 20) {
+			selected = nucioption;
+		}
+		else if (event->y == nucioption + 2 && 10 <= event->x && event->x < 18) {
+			selected = nucioption + 1;
+		}
+		else {
+			break;
+		}
+		/* fallthrough */
 	case '\n':
 		if (selected == nucioption) {
 			ucioptions_restore();
@@ -240,6 +256,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		ucioption[nucioption - 1].value.str = NULL;
 		ucioption[nucioption - 1].def.str = NULL;
 		ucioptionfield = realloc(ucioptionfield, nucioption * sizeof(*ucioptionfield));
+		ucioptionfield[nucioption - 1].init = 0;
 		if (!ucioptionfield)
 			die("error: realloc");
 
@@ -385,7 +402,11 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		if (error)
 			break;
 
-		field_init(&ucioptionfield[nucioption - 1], ucioptions.win, nucioption, 4 + strlen(ucioption[nucioption - 1].name), 22 - strlen(ucioption[nucioption - 1].name), filter, NULL);
+		int len = strlen(ucioption[nucioption - 1].name);
+		if (len > 15)
+			len = 15;
+
+		field_init(&ucioptionfield[nucioption - 1], ucioptions.win, nucioption, 4 + len, 22 - len, filter, NULL);
 
 		switch (ucioption[nucioption - 1].type) {
 		case TYPE_CHECK:
@@ -434,7 +455,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 	kill(pid, SIGKILL);
 
 	if (!responsive)
-		error = 1;
+		error = 2;
 
 	if (error)
 		ucioptions_free_all();
@@ -460,29 +481,55 @@ void ucioptions_draw(void) {
 	draw_border(ucioptions.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
 
 	for (int i = 0; i < nucioption; i++) {
+		char *name = strdup(ucioption[i].name);
 		if (ucioption[i].type == TYPE_BUTTON) {
+			if (strlen(name) > 24) {
+				name[21] = '.';
+				name[22] = '.';
+				name[23] = '.';
+				name[24] = '\0';
+			}
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, ucioption[i].name);
+			mvwaddstr(ucioptions.win, i + 1, 2, name);
 		}
 		else if (ucioption[i].type == TYPE_CHECK) {
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, ucioption[i].name);
-			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(ucioption[i].name), ": [");
-			mvwaddch(ucioptions.win, i + 1, 6 + strlen(ucioption[i].name), ']');
-			mvwaddch(ucioptions.win, i + 1, 5 + strlen(ucioption[i].name), ucioption[i].value.i ? '*' : ' ');
+			if (strlen(name) > 19) {
+				name[16] = '.';
+				name[17] = '.';
+				name[18] = '.';
+				name[19] = '\0';
+			}
+			mvwaddstr(ucioptions.win, i + 1, 2, name);
+			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(name), ": [");
+			mvwaddch(ucioptions.win, i + 1, 6 + strlen(name), ']');
+			mvwaddch(ucioptions.win, i + 1, 5 + strlen(name), ucioption[i].value.i ? '*' : ' ');
 		}
 		else if (ucioption[i].type == TYPE_COMBO) {
+			if (strlen(name) > 17) {
+				name[14] = '.';
+				name[15] = '.';
+				name[16] = '.';
+				name[17] = '\0';
+			}
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, ucioption[i].name);
-			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(ucioption[i].name), ": ");
-			mvwaddstr(ucioptions.win, i + 1, 4 + strlen(ucioption[i].name), ucioption[i].value.str);
+			mvwaddstr(ucioptions.win, i + 1, 2, name);
+			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(name), ": ");
+			mvwaddnstr(ucioptions.win, i + 1, 4 + strlen(name), ucioption[i].value.str, 5 + 17 - strlen(name));
 		}
 		else {
+			if (strlen(name) > 15) {
+				name[12] = '.';
+				name[13] = '.';
+				name[14] = '.';
+				name[15] = '\0';
+			}
 			set_color(ucioptions.win, &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, ucioption[i].name);
-			mvwaddch(ucioptions.win, i + 1, 2 + strlen(ucioption[i].name), ':');
+			mvwaddstr(ucioptions.win, i + 1, 2, name);
+			mvwaddch(ucioptions.win, i + 1, 2 + strlen(name), ':');
 			field_draw(&ucioptionfield[i], A_UNDERLINE, selected == i, 0);
 		}
+		free(name);
 	}
 	set_color(ucioptions.win, &cs.text);
 	set_color(ucioptions.win, selected == nucioption ? &cs.texthl : &cs.text);

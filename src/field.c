@@ -35,6 +35,7 @@ void field_init(struct field *field, WINDOW *win, int y, int x, int screenlen, i
 		die("error: malloc\n");
 
 	field->error = 0;
+	field->init = 1;
 }
 
 /* Draw the \n and \t characters as a red 'n' and 't' respectively. */
@@ -188,6 +189,10 @@ void field_set(struct field *field, const char *str) {
 }
 
 void field_free(struct field *field) {
+	if (!field->init) {
+		return;
+	}
+	field->init = 0;
 	free(field->str);
 	free(field->suggestion);
 }
