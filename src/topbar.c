@@ -25,17 +25,14 @@ void topbar_event(chtype ch, MEVENT *event) {
 		break;
 	case 'h':
 	case KEY_LEFT:
-		if (selected > 0) {
-			refreshed = 0;
-			selected--;
-		}
+		refreshed = 0;
+		selected = (selected + 4) % 5;
 		break;
+	case '\t':
 	case 'l':
 	case KEY_RIGHT:
-		if (selected < noptions - 1) {
-			refreshed = 0;
-			selected++;
-		}
+		refreshed = 0;
+		selected = (selected + 1) % 5;
 		break;
 	case 'j':
 	case KEY_DOWN:

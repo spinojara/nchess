@@ -106,30 +106,14 @@ void newgame_event(chtype ch, MEVENT *event) {
 		if (selected == 6) {
 			field_driver(&fen, ch, NULL);
 			refreshed = 0;
+			break;
 		}
-		else if (selected > 0) {
-			selected--;
-			refreshed = 0;
-		}
-		if (selected == 6 && currentposition)
-			selected = 5;
-		break;
+		/* fallthrough */
 	case KEY_UP:
-		if (selected > 0) {
-			selected--;
-			refreshed = 0;
-		}
+		selected = (selected + 7) % 8;
+		refreshed = 0;
 		if (selected == 6 && currentposition)
 			selected = 5;
-		break;
-	case 'j':
-	case KEY_DOWN:
-		if (selected < 7) {
-			selected++;
-			refreshed = 0;
-		}
-		if (selected == 6 && currentposition)
-			selected = 7;
 		break;
 	case 'h':
 		if (selected == 1 || selected == 4) {
@@ -143,6 +127,8 @@ void newgame_event(chtype ch, MEVENT *event) {
 			refreshed = 0;
 		}
 		break;
+	case 'j':
+	case KEY_DOWN:
 	case '\t':
 		selected = (selected + 1) % 8;
 		if (selected == 6 && currentposition)

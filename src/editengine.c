@@ -52,13 +52,15 @@ void editengine_event(chtype ch, MEVENT *event) {
 			else
 				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 5, 26);
 		}
-		break; case KEY_UP:
-		if (selected > 0)
-			selected--;
 		break;
-	case KEY_DOWN:
-		if (selected < 5)
-			selected++;
+	case 'k':
+		if (selected <= 2) {
+			field_driver(&field[selected], ch, NULL);
+			break;
+		}
+		/* fallthrough */
+	case KEY_UP:
+		selected = (selected + 5) % 6;
 		break;
 	case KEY_ENTER:
 	case '\n':
@@ -76,6 +78,13 @@ void editengine_event(chtype ch, MEVENT *event) {
 				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 6, 30);
 		}
 		break;
+	case 'j':
+		if (selected <= 2) {
+			field_driver(&field[selected], ch, NULL);
+			break;
+		}
+		/* fallthrough */
+	case KEY_DOWN:
 	case '\t':
 		selected = (selected + 1) % 6;
 		break;

@@ -40,14 +40,6 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		break;
 	case KEY_MOUSE:
 		break;
-	case KEY_UP:
-		if (selected > 0)
-			selected--;
-		break;
-	case KEY_DOWN:
-		if (selected < nucioption + 1)
-			selected++;
-		break;
 	case '\n':
 		if (selected == nucioption) {
 			ucioptions_restore();
@@ -93,6 +85,22 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 			break;
 		}
 		break;
+	case 'k':
+		if (selected < nucioption && ucioption[selected].type == TYPE_STRING) {
+			field_driver(&ucioptionfield[selected], ch, NULL);
+			break;
+		}
+		/* fallthrough */
+	case KEY_UP:
+		selected = (selected + nucioption + 1) % (nucioption + 2);
+		break;
+	case 'j':
+		if (selected < nucioption && ucioption[selected].type == TYPE_STRING) {
+			field_driver(&ucioptionfield[selected], ch, NULL);
+			break;
+		}
+		/* fallthrough */
+	case KEY_DOWN:
 	case '\t':
 		selected = (selected + 1) % (nucioption + 2);
 		break;

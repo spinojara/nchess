@@ -59,21 +59,13 @@ void enginepicker_event(chtype ch, MEVENT *event) {
 		break;
 	case 'k':
 	case KEY_UP:
-		if (0 < selected) {
-			refreshed = 0;
-			selected--;
-		}
+		selected = (selected + nengines) % (nengines + 1);
 		break;
 	case '\t':
-		selected = (selected + 1) % (nengines + 1);
-		refreshed = 0;
-		break;
 	case 'j':
 	case KEY_DOWN:
-		if (selected < nengines) {
-			refreshed = 0;
-			selected++;
-		}
+		selected = (selected + 1) % (nengines + 1);
+		refreshed = 0;
 		break;
 	}
 

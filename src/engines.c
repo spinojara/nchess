@@ -62,25 +62,14 @@ void engines_event(chtype ch, MEVENT *event) {
 		break;
 	case 'k':
 	case KEY_UP:
-		if (0 < selected) {
-			refreshed = 0;
-			selected--;
-		}
-		else {
-			refreshed = 1;
-			place_top(&topbar);
-		}
-		break;
-	case '\t':
-		selected = (selected + 1) % (1 + nengines);
+		selected = (selected + nengines) % (1 + nengines);
 		refreshed = nengines == 0;
 		break;
+	case '\t':
 	case 'j':
 	case KEY_DOWN:
-		if (selected < nengines) {
-			refreshed = 0;
-			selected++;
-		}
+		selected = (selected + 1) % (1 + nengines);
+		refreshed = nengines == 0;
 		break;
 	}
 
