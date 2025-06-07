@@ -368,7 +368,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				}
 				else {
 					ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1] = calloc(strlen(cur), 1);
-					strncpy(ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1], cur, strlen(cur) - 1);
+					memcpy(ucioption[nucioption - 1].var[ucioption[nucioption - 1].nvar - 1], cur, strlen(cur) - 1);
 				}
 			}
 			if (ucioption[nucioption - 1].nvar == 0) {
