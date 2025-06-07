@@ -29,6 +29,7 @@ int ucioptions_fetch_fields(void);
 void ucioptions_restore(void);
 
 void ucioptions_event(chtype ch, MEVENT *event) {
+#ifndef _WIN32
 	refreshed = 0;
 	switch (ch) {
 	case 0:
@@ -192,13 +193,19 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 
 	if (!refreshed)
 		ucioptions_draw();
+#else
+	return;
+#endif
 }
 
+#ifndef _WIN32
 int filter_integer(char c) {
 	return !(('0' <= c && c <= '9') || c == '-');
 }
+#endif
 
 int ucioptions_init(const char *command, const char *workingdir, int nuo, const struct ucioption *uo) {
+#ifndef _WIN32
 	ucioptions_free_all();
 	selected = 0;
 	char buf[BUFSIZ], *endptr;
@@ -459,10 +466,13 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 
 	if (error)
 		ucioptions_free_all();
-
 	return error;
+#else
+	return 0;
+#endif
 }
 
+#ifndef _WIN32
 void ucioptions_free_fields(void) {
 	for (int i = 0; i < nucioption; i++)
 		field_free(&ucioptionfield[i]);
@@ -474,8 +484,10 @@ void ucioptions_free_all(void) {
 	ucioptions_free_fields();
 	ucioption_free(&nucioption, &ucioption);
 }
+#endif
 
 void ucioptions_draw(void) {
+#ifndef _WIN32
 	int x, y;
 	getmaxyx(ucioptions.win, y, x);
 	draw_border(ucioptions.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
@@ -539,6 +551,7 @@ void ucioptions_draw(void) {
 
 	wrefresh(ucioptions.win);
 	refreshed = 1;
+#endif
 }
 
 void ucioptions_resize(void) {
@@ -548,6 +561,7 @@ void ucioptions_resize(void) {
 	ucioptions_draw();
 }
 
+#ifndef _WIN32
 int ucioptions_fetch_fields(void) {
 	char *endptr;
 	for (int i = 0; i < nucioption; i++) {
@@ -599,3 +613,4 @@ void ucioptions_restore(void) {
 		}
 	}
 }
+#endif

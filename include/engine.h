@@ -2,6 +2,7 @@
 #define ENGINE_H
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <stdio.h>
 #ifndef _WIN32
 #include <pthread.h>
