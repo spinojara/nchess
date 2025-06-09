@@ -15,6 +15,7 @@
 #include "newgame.h"
 #include "enginepicker.h"
 #include "ucioptions.h"
+#include "info.h"
 
 #define MINLINES 56
 #define MINCOLS 117
@@ -80,8 +81,11 @@ void window_init(void) {
 }
 
 void window_resize(void) {
-	if (LINES < MINLINES || COLS < MINCOLS)
-		die("error: terminal needs to be of size at least %dx%d\n", MINLINES, MINCOLS);
+	if (LINES < MINLINES || COLS < MINCOLS) {
+		char message[4096];
+		sprintf(message, "The terminal window is currently of size %dx%d, but the minimum supported size is %dx%d. You may continue, but expect the experience to be wonky at best.", LINES, COLS, MINLINES, MINCOLS);
+		info("Unsupported Terminal Size", message, INFO_WARNING, LINES < 8 ? LINES : 8, COLS < 48 ? COLS : 48);
+	}
 	wbkgd(stdscr, cs.bg.attr);
 	draw_fill(stdscr, &cs.bg, 0, 0, LINES, COLS, NULL);
 	draw_border(stdscr, &cs.bg, &cs.border, &cs.bordershadow, 1, 1, 2, LINES - 2, COLS - 4);

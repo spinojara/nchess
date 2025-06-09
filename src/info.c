@@ -9,15 +9,14 @@
 #include "window.h"
 
 int next_word(char *word, const char *text, int *i) {
-	int j, flag;
-	for (j = flag = 0; text[*i] != '\0'; ++*i) {
+	int j;
+	for (j = 0; text[*i] != '\0'; ++*i) {
 		if (text[*i] == ' ') {
-			if (!flag)
+			if (!j)
 				continue;
 			else
 				break;
 		}
-		flag = 1;
 		word[j++] = text[*i];
 	}
 	word[j] = '\0';
@@ -25,7 +24,19 @@ int next_word(char *word, const char *text, int *i) {
 }
 
 void info(const char *title, const char *message, int type, int lines, int cols) {
-	WINDOW *win = newwin(lines, cols, 26 - lines / 2, 45 - cols / 2);
+	int linesstart = 26 - lines / 2;
+	if (linesstart + lines >= LINES)
+		linesstart = (LINES - lines) / 2;
+	if (linesstart < 0)
+		linesstart = 0;
+
+	int colsstart = 45 - cols / 2;
+	if (colsstart + cols >= COLS)
+		colsstart = (COLS - cols) / 2;
+	if (colsstart < 0)
+		colsstart = 0;
+
+	WINDOW *win = newwin(lines, cols, linesstart, colsstart);
 	keypad(win, TRUE);
 
 	draw_border(win, NULL, &cs.border, &cs.bordershadow, 1, 0, 0, lines, cols);
@@ -44,15 +55,12 @@ void info(const char *title, const char *message, int type, int lines, int cols)
 
 	int i = 0, wordlen, col = 3;
 	while (i < len) {
-		 wordlen = next_word(buf, message, &i);
-		 if (wordlen + col <= cols - 3) {
-		 	mvwaddstr(win, line, col, buf);
-		 }
-		 else {
+		wordlen = next_word(buf, message, &i);
+		if (wordlen + col > cols - 3) {
 			line++;
 			col = 3;
-		 	mvwaddstr(win, line, col, buf);
-		 }
+		}
+		mvwaddstr(win, line, col, buf);
 		col += wordlen + 1;
 	}
 
