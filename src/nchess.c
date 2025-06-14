@@ -102,9 +102,9 @@ int main(void) {
 		wins[0]->event(ch, ch == KEY_MOUSE ? &event : NULL);
 	}
 
-	endwin();
 	end_analysis();
 	end_game();
+	endwin();
 	engines_writeconfig();
 	settings_writeconfig();
 }
