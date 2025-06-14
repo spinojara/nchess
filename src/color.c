@@ -21,12 +21,18 @@ void make_colors(void) {
 	COLOR(cs.wpw, COLOR_WHITE, COLOR_CYAN, A_BOLD);
 	COLOR(cs.bpw, COLOR_BLACK, COLOR_CYAN, A_NORMAL);
 	COLOR(cs.cpw, COLOR_BLACK, COLOR_CYAN, A_BOLD);
+
 	COLOR(cs.wpb, COLOR_WHITE, COLOR_BLUE, A_BOLD);
 	COLOR(cs.bpb, COLOR_BLACK, COLOR_BLUE, A_NORMAL);
 	COLOR(cs.cpb, COLOR_BLACK, COLOR_BLUE, A_BOLD);
+
 	COLOR(cs.wps, COLOR_WHITE, COLOR_RED, A_BOLD);
 	COLOR(cs.bps, COLOR_BLACK, COLOR_RED, A_NORMAL);
 	COLOR(cs.cps, COLOR_BLACK, COLOR_RED, A_BOLD);
+
+	COLOR(cs.wpm, COLOR_WHITE, COLOR_MAGENTA, A_BOLD);
+	COLOR(cs.bpm, COLOR_BLACK, COLOR_MAGENTA, A_NORMAL);
+	COLOR(cs.cpm, COLOR_BLACK, COLOR_MAGENTA, A_BOLD);
 
 	COLOR(cs.bg,           COLOR_BLUE,   COLOR_BLUE,  A_NORMAL);
 	COLOR(cs.border,       COLOR_WHITE,  COLOR_WHITE, A_BOLD);
@@ -45,12 +51,18 @@ void make_colors(void) {
 	make_color(&cs.wpw);
 	make_color(&cs.bpw);
 	make_color(&cs.cpw);
+
 	make_color(&cs.wpb);
 	make_color(&cs.bpb);
 	make_color(&cs.cpb);
+
 	make_color(&cs.wps);
 	make_color(&cs.bps);
 	make_color(&cs.cps);
+
+	make_color(&cs.wpm);
+	make_color(&cs.bpm);
+	make_color(&cs.cpm);
 
 	make_color(&cs.bg);
 	make_color(&cs.border);

@@ -815,6 +815,19 @@ void parse_analysis(const struct position *current) {
 }
 
 void end_analysis(void) {
+	sentdepth = 0;
+	sentseldepth = 0;
+	senttime = 0;
+	sentnodes = 0;
+	sentpv = 0;
+	sentscore = 0;
+	sentnps = 0;
+	senthashfull = 0;
+	senttbhits = 0;
+	sentcpuload = 0;
+	sentcurrmove = 0;
+	sentcurrmovenumber = 0;
+	npastinfo = 0;
 	if (!analysisengine)
 		return;
 	if (engine_close(analysisengine))
@@ -1074,7 +1087,7 @@ void parsescore(char strs[MAXPASTINFO][7]) {
 		int j = 0;
 		if ((pastinfo[i].lowerbound || pastinfo[i].upperbound) && !pastinfo[j].mate)
 			strs[i][j++] = ' ';
-		
+
 		if (pastinfo[i].mate)
 			sprintf(strs[i], "#%lld", min(llabs(pastinfo[i].mate), 99999));
 		else
@@ -1495,7 +1508,10 @@ void mainwin_draw(void) {
 	set_color(mainwin.win, posd.turn == BLACK ? &cs.texthl : &cs.text);
 	mvwaddstr(mainwin.win, 46, 44, "Black");
 
-	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped);
+	struct move bestmove;
+	int usebestmove = do_analysis() && npastinfo && string_to_move(&bestmove, &posd, pastinfo->pv[0]) != NULL;
+
+	board_draw(mainwin.win, 1, 1, &posd, selectedsquare, flipped, usebestmove ? &bestmove : NULL);
 	char fenstr[128];
 	if (!fenselected)
 		field_set(&fen, pos_to_fen(fenstr, &posd));

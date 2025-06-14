@@ -215,7 +215,7 @@ void editwin_draw(void) {
 	set_color(editwin.win, illegal ? &cs.red : &cs.text);
 	mvwaddstr(editwin.win, 43, 85, "< Save >");
 
-	board_draw(editwin.win, 1, 1, &pos, selectedsquare, flipped);
+	board_draw(editwin.win, 1, 1, &pos, selectedsquare, flipped, NULL);
 	fen_draw(editwin.win, &pos);
 	wrefresh(editwin.win);
 	refreshed = 1;

@@ -14,12 +14,18 @@ struct colors {
 	struct color wpw;
 	struct color bpw;
 	struct color cpw;
+
 	struct color wpb;
 	struct color bpb;
 	struct color cpb;
+
 	struct color wps;
 	struct color bps;
 	struct color cps;
+
+	struct color wpm;
+	struct color bpm;
+	struct color cpm;
 
 	struct color bg;
 	struct color border;

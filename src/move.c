@@ -571,9 +571,13 @@ struct move *string_to_move(struct move *move, struct position *pos, const char 
 		return NULL;
 	struct move moves[MOVES_MAX];
 	movegen(pos, moves, 0);
-	char s[6];
+	char s[16];
 	for (int i = 0; !is_null(&moves[i]); i++) {
 		if (!strcmp(move_algebraic(s, &moves[i]), str)) {
+			*move = moves[i];
+			return move;
+		}
+		if (!strcmp(move_pgn(s, pos, &moves[i]), str)) {
 			*move = moves[i];
 			return move;
 		}

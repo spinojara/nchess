@@ -5,8 +5,9 @@
 
 #include "color.h"
 #include "position.h"
+#include "move.h"
 
-void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, int flipped);
+void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, int flipped, struct move *bestmove);
 
 void piece_draw(WINDOW *win, int y, int x, struct piece *p, struct color *fg);
 

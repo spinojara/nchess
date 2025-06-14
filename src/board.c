@@ -81,7 +81,7 @@ void piece_draw(WINDOW *win, int y, int x, struct piece *p, struct color *fg) {
 		assert(0);
 		return;
 	}
-	
+
 	set_color(win, fg);
 	for (i = 0; i < 5; i++) {
 		for (j = 0; j < 10; j++) {
@@ -94,7 +94,7 @@ void piece_draw(WINDOW *win, int y, int x, struct piece *p, struct color *fg) {
 	}
 }
 
-void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, int flipped) {
+void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, int flipped, struct move *bestmove) {
 	for (int i = 0; i < 8; i++) {
 		for (int j = 0; j < 8; j++) {
 			int sq = 8 * i + j;
@@ -103,6 +103,7 @@ void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, i
 			struct piece *p = &pos->mailbox[sq];
 			struct color *fg;
 			int is_selected = sq == selected;
+			int is_move = !is_selected && bestmove && (sq == bestmove->from || sq == bestmove->to);
 			if ((i + j) % 2) {
 				if (p->color) {
 					fg = &cs.wpw;
@@ -125,9 +126,18 @@ void board_draw(WINDOW *win, int y, int x, struct position *pos, int selected, i
 				if (fg == &cs.bpw || fg == &cs.bpb)
 					fg = &cs.bps;
 			}
+			else if (is_move) {
+				if (fg == &cs.wpw || fg == &cs.wpb)
+					fg = &cs.wpm;
+				if (fg == &cs.bpw || fg == &cs.bpb)
+					fg = &cs.bpm;
+			}
 			piece_draw(win, y + 5 * (7 - i), x + 10 * j, p, fg);
 			if (is_selected) {
 				fg = &cs.cps;
+			}
+			else if (is_move) {
+				fg = &cs.cpm;
 			}
 			else if ((i + j) % 2) {
 				fg = &cs.cpw;
