@@ -94,6 +94,7 @@ void newgame_event(chtype ch, MEVENT *event) {
 			refreshed = 1;
 			struct position pos;
 			start_game(blackplayer, whiteplayer, currentposition ? &posd : pos_from_fen(&pos, field_buffer(&fen, 1)), tc);
+			topbar.event(0, NULL);
 			place_top(&mainwin);
 		}
 		break;
@@ -195,6 +196,7 @@ void newgame_event(chtype ch, MEVENT *event) {
 			refreshed = 1;
 			struct position pos;
 			start_game(blackplayer, whiteplayer, currentposition ? &posd : pos_from_fen(&pos, field_buffer(&fen, 1)), tc);
+			topbar.event(0, NULL);
 			place_top(&mainwin);
 			break;
 		}

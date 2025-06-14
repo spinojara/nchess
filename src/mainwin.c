@@ -348,6 +348,7 @@ void start_game(const struct uciengine *black, const struct uciengine *white, co
 void end_game(void) {
 	if (!gamerunning)
 		return;
+	topbar.event(0, NULL);
 	gamerunning = 0;
 	selectedsquare = -1;
 

@@ -10,7 +10,7 @@
 
 static int selected = 0;
 
-static const char *options[] = { "New Game", "Settings", "Engines", "Edit Board", "Analysis" };
+static const char *options[] = { "New  Game", "Settings", "Engines", "Edit Board", "Analysis" };
 
 static const int noptions = sizeof(options) / sizeof(*options);
 
@@ -64,7 +64,10 @@ void topbar_event(chtype ch, MEVENT *event) {
 	case '\n':
 		switch (selected) {
 		case 0:
-			place_top(&newgame);
+			if (gamerunning)
+				end_game();
+			else
+				place_top(&newgame);
 			break;
 		case 1:
 			place_top(&settings);
@@ -116,7 +119,7 @@ void topbar_draw(void) {
 	draw_fill(topbar.win, &cs.border, 0, 0, y, x, NULL);
 	for (i = 0, x = 3; i < noptions; i++) {
 		set_color(topbar.win, selected == i && wins[0] == &topbar ? &cs.texthl : &cs.text);
-		mvwprintw(topbar.win, 1, x, "< %s >", options[i]);
+		mvwprintw(topbar.win, 1, x, "< %s >", i == 0 && gamerunning ? "Stop Game" : options[i]);
 		x += strlen(options[i]) + 6;
 	}
 	wrefresh(topbar.win);
