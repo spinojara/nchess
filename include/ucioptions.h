@@ -5,6 +5,19 @@
 
 #include "engine.h"
 
+enum {
+	UE_NOERROR,
+	UE_NONAME,
+	UE_NOTYPE,
+	UE_BADTYPE,
+	UE_BADMIN,
+	UE_BADMAX,
+	UE_BADDEF,
+	UE_NOVAR,
+	UE_DEFNOTVAR,
+	UE_NORESPONSE,
+};
+
 void ucioptions_event(chtype ch, MEVENT *event);
 
 void ucioptions_resize(void);

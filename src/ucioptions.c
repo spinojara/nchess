@@ -6,6 +6,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <assert.h>
+#ifndef _WIN32
+#include <poll.h>
+#endif
 
 #include "window.h"
 #include "color.h"
@@ -249,11 +252,26 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 	fprintf(w, "quit\n");
 	fflush(w);
 
+	struct pollfd fd = { .fd = childparent[0], .events = POLLIN };
+
 	int error = 0;
 	int responsive = 0;
-	while (!error && fgets(buf, sizeof(buf), r)) {
-		if (!strncmp(buf, "id name ", 8))
-			responsive = 1;
+	while (!error) {
+		if (poll(&fd, 1, 1000) <= 0 || !fgets(buf, sizeof(buf), r)) {
+			responsive = -1;
+			break;
+		}
+
+		if (!strncmp(buf, "id name ", 8)) {
+			responsive++;
+		}
+		if (!strncmp(buf, "id author ", 10)) {
+			responsive++;
+		}
+		if (!strcmp(buf, "uciok\n")) {
+			responsive++;
+			break;
+		}
 		if (strncmp(buf, "option ", 7))
 			continue;
 		nucioption++;
@@ -275,8 +293,12 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		char *max1 = strstr(buf, " max ");
 		char *var = strstr(buf, " var ");
 
-		if (!name || !type) {
-			error = 1;
+		if (!name) {
+			error = UE_NONAME;
+			break;
+		}
+		if (!type) {
+			error = UE_NOTYPE;
 			break;
 		}
 
@@ -299,7 +321,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			ucioption[nucioption - 1].type = TYPE_COMBO;
 		}
 		else {
-			error = 1;
+			error = UE_BADTYPE;
 			break;
 		}
 
@@ -321,7 +343,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				errno = 0;
 				ucioption[nucioption - 1].min = strtoll(min1 + 5, &endptr, 10);
 				if (errno || (*endptr != '\n' && *endptr != ' ')) {
-					error = 1;
+					error = UE_BADMIN;
 					break;
 				}
 			}
@@ -332,7 +354,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				errno = 0;
 				ucioption[nucioption - 1].max = strtoll(max1 + 5, &endptr, 10);
 				if (errno || (*endptr != '\n' && *endptr != ' ')) {
-					error = 1;
+					error = UE_BADMAX;
 					break;
 				}
 			}
@@ -340,7 +362,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				errno = 0;
 				ucioption[nucioption - 1].def.i = strtoll(def + 9, &endptr, 10);
 				if (errno || (*endptr != '\n' && *endptr != ' ')) {
-					error = 1;
+					error = UE_BADDEF;
 					break;
 				}
 			}
@@ -350,13 +372,13 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			break;
 		case TYPE_COMBO:
 			if (!var) {
-				error = 1;
+				error = UE_NOVAR;
 				break;
 			}
 			if (def) {
 				int length = var - def - 9;
 				if (length <= 0) {
-					error = 1;
+					error = UE_BADDEF;
 					break;
 				}
 				ucioption[nucioption - 1].def.str = calloc(length + 1, 1);
@@ -379,7 +401,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				}
 			}
 			if (ucioption[nucioption - 1].nvar == 0) {
-				error = 1;
+				error = UE_NOVAR;
 				break;
 			}
 
@@ -391,7 +413,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				if (!strcmp(ucioption[nucioption - 1].var[i], ucioption[nucioption - 1].def.str))
 					found = 1;
 			if (!found) {
-				error = 1;
+				error = UE_DEFNOTVAR;
 				break;
 			}
 			break;
@@ -399,7 +421,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 			if (def) {
 				int length = strlen(def + 9);
 				if (length <= 0) {
-					error = 1;
+					error = UE_BADDEF;
 					break;
 				}
 				ucioption[nucioption - 1].def.str = calloc(length, 1);
@@ -468,8 +490,8 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 
 	kill(pid, SIGKILL);
 
-	if (!responsive)
-		error = 2;
+	if (responsive != 3)
+		error = UE_NORESPONSE;
 
 	if (error)
 		ucioptions_free_all();

@@ -73,13 +73,20 @@ void editengine_event(chtype ch, MEVENT *event) {
 		else if (selected == 5) {
 			refreshed = 1;
 			switch (ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption)) {
-			case 0:
+			case UE_NOERROR:
 				place_top(&ucioptions);
 				break;
-			case 1:
-				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 6, 30);
+			case UE_NONAME:
+			case UE_NOTYPE:
+			case UE_BADTYPE:
+			case UE_BADMIN:
+			case UE_BADMAX:
+			case UE_BADDEF:
+			case UE_NOVAR:
+			case UE_DEFNOTVAR:
+				info("Engine Error", "An error occured while parsing the UCI options: ", INFO_ERROR, 6, 30);
 				break;
-			case 2:
+			case UE_NORESPONSE:
 				info("Engine Error", "The engine is unresponsive.", INFO_ERROR, 5, 33);
 				break;
 			default:

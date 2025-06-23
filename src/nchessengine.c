@@ -2,13 +2,17 @@
 #include <string.h>
 
 int main(void) {
+	setbuf(stdin, NULL);
+	setbuf(stdout, NULL);
+
 	while (1) {
 		char buf[BUFSIZ];
 		if (!fgets(buf, sizeof(buf), stdin))
 			break;
 
-		if (!strcmp(buf, "quit\n"))
+		if (!strcmp(buf, "quit\n")) {
 			break;
+		}
 		else if (!strcmp(buf, "uci\n")) {
 			printf("id name nchessengine\n");
 			printf("id author Isak Ellmer\n");
@@ -18,7 +22,7 @@ int main(void) {
 			printf("option name AVeryVeryVeryLongOptionNameButton type button\n");
 			printf("option name AVeryVeryLongOptionNameString type string default AVeryVeryLongString\n");
 			for (int i = 1; i <= 32; i++) {
-				printf("option name option%d type int default %d\n", i, i);
+				printf("option name option%d type spin default %d\n", i, i);
 			}
 			printf("uciok\n");
 		}
