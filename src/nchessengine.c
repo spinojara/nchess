@@ -20,6 +20,7 @@ int main(void) {
 			for (int i = 1; i <= 32; i++) {
 				printf("option name option%d type int default %d\n", i, i);
 			}
+			printf("uciok\n");
 		}
 	}
 

@@ -13,6 +13,7 @@
 #include "engine.h"
 #include "field.h"
 #include "info.h"
+#include "util.h"
 
 #define MAXPASTINFO 17
 #define MAXINFOPV   32
@@ -1015,14 +1016,6 @@ int fen_filter(char c) {
 		(c < 'a' || c > 'h') && c != 'w' && c != 'K' && c != 'Q' &&
 		c != 'R' && c != 'B' && c != 'N' && c != 'P' && c != 'k' &&
 		c != 'q' && c != 'r' && c != 'b' && c != 'n' && c != 'p';
-}
-
-static long long max(long long a, long long b) {
-	return a > b ? a : b;
-}
-
-static long long min(long long a, long long b) {
-	return a > b ? b : a;
 }
 
 void parsedepth(char strs[MAXPASTINFO][8]) {

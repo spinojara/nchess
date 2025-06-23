@@ -50,7 +50,7 @@ void editengine_event(chtype ch, MEVENT *event) {
 			if (!ucioptions_init(field_buffer(&field[1], 0), field_buffer(&field[2], 0), nucioption, ucioption))
 				place_top(&ucioptions);
 			else
-				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 5, 26);
+				info("Engine Error", "An error occured while parsing the UCI options.", INFO_ERROR, 6, 30);
 		}
 		break;
 	case 'k':

@@ -13,6 +13,7 @@
 #include "field.h"
 #include "engine.h"
 #include "editengine.h"
+#include "util.h"
 
 static int refreshed = 0;
 
@@ -270,8 +271,8 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 		char *name = strstr(buf, " name ");
 		char *type = strstr(buf, " type ");
 		char *def = strstr(buf, " default ");
-		char *min = strstr(buf, " min ");
-		char *max = strstr(buf, " max ");
+		char *min1 = strstr(buf, " min ");
+		char *max1 = strstr(buf, " max ");
 		char *var = strstr(buf, " var ");
 
 		if (!name || !type) {
@@ -313,21 +314,27 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				ucioption[nucioption - 1].def.i = 0;
 			break;
 		case TYPE_SPIN:
-			if (!min || !max) {
-				error = 1;
-				break;
+			if (!min1) {
+				ucioption[nucioption - 1].min = INT64_MIN;
 			}
-			errno = 0;
-			ucioption[nucioption - 1].min = strtoll(min + 5, &endptr, 10);
-			if (errno || (*endptr != '\n' && *endptr != ' ')) {
-				error = 1;
-				break;
+			else {
+				errno = 0;
+				ucioption[nucioption - 1].min = strtoll(min1 + 5, &endptr, 10);
+				if (errno || (*endptr != '\n' && *endptr != ' ')) {
+					error = 1;
+					break;
+				}
 			}
-			errno = 0;
-			ucioption[nucioption - 1].max = strtoll(max + 5, &endptr, 10);
-			if (errno || (*endptr != '\n' && *endptr != ' ')) {
-				error = 1;
-				break;
+			if (!max1) {
+				ucioption[nucioption - 1].max = INT64_MAX;
+			}
+			else {
+				errno = 0;
+				ucioption[nucioption - 1].max = strtoll(max1 + 5, &endptr, 10);
+				if (errno || (*endptr != '\n' && *endptr != ' ')) {
+					error = 1;
+					break;
+				}
 			}
 			if (def) {
 				errno = 0;
@@ -338,7 +345,7 @@ int ucioptions_init(const char *command, const char *workingdir, int nuo, const 
 				}
 			}
 			else {
-				ucioption[nucioption - 1].def.i = ucioption[nucioption - 1].min;
+				ucioption[nucioption - 1].def.i = min(max(ucioption[nucioption - 1].min, 0), ucioption[nucioption - 1].max);
 			}
 			break;
 		case TYPE_COMBO:
