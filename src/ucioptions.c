@@ -18,10 +18,13 @@
 #include "editengine.h"
 #include "util.h"
 
+#define MAXLINES 29
+
 static int refreshed = 0;
 
 static int selected = 0;
 
+static int scrolloption = 0;
 static int nucioption;
 static struct ucioption *ucioption;
 static struct field *ucioptionfield;
@@ -44,17 +47,17 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		place_top(&editengine);
 		break;
 	case KEY_MOUSE:
-		if (1 <= event->y && event->y <= nucioption && 2 <= event->x && event->x < 26) {
-			selected = event->y - 1;
+		if (1 <= event->y && event->y <= min(nucioption, MAXLINES + 1) && 2 <= event->x && event->x < 26) {
+			selected = event->y - 1 + scrolloption;
 			if (ucioption[selected].type == TYPE_STRING || ucioption[selected].type == TYPE_SPIN) {
 				field_driver(&ucioptionfield[selected], ch, event);
 				break;
 			}
 		}
-		else if (event->y == nucioption + 1 && 9 <= event->x && event->x < 20) {
+		else if (event->y == min(nucioption + 1, MAXLINES + 2) && 9 <= event->x && event->x < 20) {
 			selected = nucioption;
 		}
-		else if (event->y == nucioption + 2 && 10 <= event->x && event->x < 18) {
+		else if (event->y == min(nucioption + 2, MAXLINES + 3) && 10 <= event->x && event->x < 18) {
 			selected = nucioption + 1;
 		}
 		else {
@@ -114,6 +117,10 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 		/* fallthrough */
 	case KEY_UP:
 		selected = (selected + nucioption + 1) % (nucioption + 2);
+		if (selected > scrolloption + MAXLINES)
+			scrolloption = min(selected, nucioption - 1) - MAXLINES;
+		if (selected < scrolloption)
+			scrolloption = selected;
 		break;
 	case 'j':
 		if (selected < nucioption && ucioption[selected].type == TYPE_STRING) {
@@ -124,6 +131,10 @@ void ucioptions_event(chtype ch, MEVENT *event) {
 	case KEY_DOWN:
 	case '\t':
 		selected = (selected + 1) % (nucioption + 2);
+		if (selected > scrolloption + MAXLINES)
+			scrolloption = min(selected, nucioption - 1) - MAXLINES;
+		if (selected < scrolloption)
+			scrolloption = selected;
 		break;
 	case ' ':
 		switch (ucioption[selected].type) {
@@ -211,6 +222,7 @@ int filter_integer(char c) {
 int ucioptions_init(const char *command, const char *workingdir, int nuo, const struct ucioption *uo) {
 #ifndef _WIN32
 	ucioptions_free_all();
+	scrolloption = 0;
 	selected = 0;
 	char buf[BUFSIZ], *endptr;
 
@@ -521,7 +533,10 @@ void ucioptions_draw(void) {
 	getmaxyx(ucioptions.win, y, x);
 	draw_border(ucioptions.win, &cs.bg, &cs.border, &cs.bordershadow, 1, 0, 0, y, x);
 
-	for (int i = 0; i < nucioption; i++) {
+	int start = scrolloption;
+	int end = min(nucioption - 1, MAXLINES + start);
+
+	for (int i = start; i <= end; i++) {
 		char *name = strdup(ucioption[i].name);
 		if (ucioption[i].type == TYPE_BUTTON) {
 			if (strlen(name) > 24) {
@@ -531,7 +546,7 @@ void ucioptions_draw(void) {
 				name[24] = '\0';
 			}
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, name);
+			mvwaddstr(ucioptions.win, i + 1 - start, 2, name);
 		}
 		else if (ucioption[i].type == TYPE_CHECK) {
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
@@ -541,10 +556,10 @@ void ucioptions_draw(void) {
 				name[18] = '.';
 				name[19] = '\0';
 			}
-			mvwaddstr(ucioptions.win, i + 1, 2, name);
-			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(name), ": [");
-			mvwaddch(ucioptions.win, i + 1, 6 + strlen(name), ']');
-			mvwaddch(ucioptions.win, i + 1, 5 + strlen(name), ucioption[i].value.i ? '*' : ' ');
+			mvwaddstr(ucioptions.win, i + 1 - start, 2, name);
+			mvwaddstr(ucioptions.win, i + 1 - start, 2 + strlen(name), ": [");
+			mvwaddch(ucioptions.win, i + 1 - start, 6 + strlen(name), ']');
+			mvwaddch(ucioptions.win, i + 1 - start, 5 + strlen(name), ucioption[i].value.i ? '*' : ' ');
 		}
 		else if (ucioption[i].type == TYPE_COMBO) {
 			if (strlen(name) > 17) {
@@ -554,9 +569,9 @@ void ucioptions_draw(void) {
 				name[17] = '\0';
 			}
 			set_color(ucioptions.win, selected == i ? &cs.texthl : &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, name);
-			mvwaddstr(ucioptions.win, i + 1, 2 + strlen(name), ": ");
-			mvwaddnstr(ucioptions.win, i + 1, 4 + strlen(name), ucioption[i].value.str, 5 + 17 - strlen(name));
+			mvwaddstr(ucioptions.win, i + 1 - start, 2, name);
+			mvwaddstr(ucioptions.win, i + 1 - start, 2 + strlen(name), ": ");
+			mvwaddnstr(ucioptions.win, i + 1 - start, 4 + strlen(name), ucioption[i].value.str, 5 + 17 - strlen(name));
 		}
 		else {
 			if (strlen(name) > 15) {
@@ -566,17 +581,18 @@ void ucioptions_draw(void) {
 				name[15] = '\0';
 			}
 			set_color(ucioptions.win, &cs.text);
-			mvwaddstr(ucioptions.win, i + 1, 2, name);
-			mvwaddch(ucioptions.win, i + 1, 2 + strlen(name), ':');
+			mvwaddstr(ucioptions.win, i + 1 - start, 2, name);
+			mvwaddch(ucioptions.win, i + 1 - start, 2 + strlen(name), ':');
+			ucioptionfield[i].y = i + 1 - start;
 			field_draw(&ucioptionfield[i], A_UNDERLINE, selected == i, 0);
 		}
 		free(name);
 	}
 	set_color(ucioptions.win, &cs.text);
 	set_color(ucioptions.win, selected == nucioption ? &cs.texthl : &cs.text);
-	mvwaddstr(ucioptions.win, nucioption + 1, 9, "< Restore >");
+	mvwaddstr(ucioptions.win, min(nucioption + 1, MAXLINES + 2), 9, "< Restore >");
 	set_color(ucioptions.win, selected == nucioption  + 1 ? &cs.texthl : &cs.text);
-	mvwaddstr(ucioptions.win, nucioption + 2, 10, "< Save >");
+	mvwaddstr(ucioptions.win, min(nucioption + 2, MAXLINES + 3), 10, "< Save >");
 
 	wrefresh(ucioptions.win);
 	refreshed = 1;
