@@ -31,10 +31,6 @@ OBJ       = $(patsubst %.c,obj/%.o,$(SRC))
 PREFIX    = /usr/local
 BINDIR    = $(PREFIX)/bin
 
-ifneq ($(STATIC), )
-	LDFLAGS += -static
-endif
-
 all: nchess
 
 nchess: $(OBJ)
